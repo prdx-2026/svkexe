@@ -2,8 +2,8 @@
 
 {{define "content"}}
 <div class="crumbs">
-    <a href="/dashboard/vms">← Virtual machines</a><span>/</span>
-    <a class="mono" href="/dashboard/vms/{{.Container.ID}}">{{.Container.Name}}</a><span>/</span><span>Terminal</span>
+    <a href="/dashboard/vms">{{t "vm.back"}}</a><span>/</span>
+    <a class="mono" href="/dashboard/vms/{{.Container.ID}}">{{.Container.Name}}</a><span>/</span><span>{{t "vms.terminal"}}</span>
 </div>
 <div class="title-line">
     <h1 class="page-title mono">{{.Container.Name}}</h1>

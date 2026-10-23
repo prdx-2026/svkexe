@@ -3,91 +3,91 @@
 {{define "content"}}
 <header class="page-head">
     <div>
-        <h1>LLM connections</h1>
-        <p class="sub">Your own keys replace the platform's models. Changes sync to running VMs; their agents restart to load them.</p>
+        <h1>{{t "llm.title"}}</h1>
+        <p class="sub">{{t "llm.sub"}}</p>
     </div>
-    <button type="button" class="btn btn-primary btn-lg" id="llm-add"><span class="plus">+</span>Add connection</button>
+    <button type="button" class="btn btn-primary btn-lg" id="llm-add"><span class="plus">+</span>{{t "llm.add"}}</button>
 </header>
 
 <form class="panel panel-focus" id="llm-connection-form" hidden style="gap:20px; padding:24px;"
       data-error-slot="llm-form-error"
       hx-put="/dashboard/keys/new" hx-target="#llm-body" hx-swap="innerHTML">
     <div class="modal-head">
-        <h3 id="llm-form-title">New connection</h3>
-        <button type="button" class="btn btn-icon" data-llm-cancel aria-label="Close">&times;</button>
+        <h3 id="llm-form-title">{{t "llm.new"}}</h3>
+        <button type="button" class="btn btn-icon" data-llm-cancel aria-label="{{t "common.close"}}">&times;</button>
     </div>
     <input type="hidden" name="provider" value="">
 
     <div class="stack" style="gap:10px;">
-        <span class="step-label">1 · Provider</span>
+        <span class="step-label">{{t "llm.step1"}}</span>
         <div class="choice-grid" style="grid-template-columns:repeat(auto-fill, minmax(170px, 1fr));">
             {{/* Presets only prefill the form; every field stays editable,
                  because a gateway's model list changes far more often than this
                  page does. */}}
             <button type="button" class="choice" data-pick="preset-openmodel" data-provider="custom" data-name="openmodel" data-base="https://api.openmodel.ai/v1" data-protocol="openai-responses" data-models="deepseek-v4-flash,deepseek-v4-pro">
-                <span class="choice-title llm-card-top">OpenModel <span class="llm-tag">preset</span></span><span class="llm-card-sub">DeepSeek, Qwen, Claude</span></button>
+                <span class="choice-title llm-card-top">OpenModel <span class="llm-tag">{{t "llm.preset"}}</span></span><span class="llm-card-sub">{{t "llm.card.openmodel"}}</span></button>
             <button type="button" class="choice" data-pick="preset-deepseek" data-provider="custom" data-name="deepseek" data-base="https://api.deepseek.com/v1" data-protocol="openai" data-models="deepseek-v4-flash,deepseek-v4-pro">
-                <span class="choice-title llm-card-top">DeepSeek <span class="llm-tag">preset</span></span><span class="llm-card-sub">Direct API</span></button>
+                <span class="choice-title llm-card-top">DeepSeek <span class="llm-tag">{{t "llm.preset"}}</span></span><span class="llm-card-sub">{{t "llm.card.deepseek"}}</span></button>
             <button type="button" class="choice" data-pick="openrouter" data-provider="openrouter" data-models="deepseek/deepseek-v4-flash">
-                <span class="choice-title llm-card-top">OpenRouter <span class="llm-tag">preset</span></span><span class="llm-card-sub">One key, many vendors</span></button>
+                <span class="choice-title llm-card-top">OpenRouter <span class="llm-tag">{{t "llm.preset"}}</span></span><span class="llm-card-sub">{{t "llm.card.openrouter"}}</span></button>
             <button type="button" class="choice" data-pick="anthropic" data-provider="anthropic">
-                <span class="choice-title llm-card-top">Anthropic <span class="llm-tag">key</span></span><span class="llm-card-sub">Claude models</span></button>
+                <span class="choice-title llm-card-top">Anthropic <span class="llm-tag">{{t "llm.tag_key"}}</span></span><span class="llm-card-sub">{{t "llm.card.anthropic"}}</span></button>
             <button type="button" class="choice" data-pick="openai" data-provider="openai">
-                <span class="choice-title llm-card-top">OpenAI <span class="llm-tag">key</span></span><span class="llm-card-sub">GPT models</span></button>
+                <span class="choice-title llm-card-top">OpenAI <span class="llm-tag">{{t "llm.tag_key"}}</span></span><span class="llm-card-sub">{{t "llm.card.openai"}}</span></button>
             <button type="button" class="choice" data-pick="gemini" data-provider="gemini">
-                <span class="choice-title llm-card-top">Gemini <span class="llm-tag">key</span></span><span class="llm-card-sub">Google models</span></button>
+                <span class="choice-title llm-card-top">Gemini <span class="llm-tag">{{t "llm.tag_key"}}</span></span><span class="llm-card-sub">{{t "llm.card.gemini"}}</span></button>
             <button type="button" class="choice" data-pick="fireworks" data-provider="fireworks">
-                <span class="choice-title llm-card-top">Fireworks <span class="llm-tag">key</span></span><span class="llm-card-sub">Open-weight models</span></button>
-            <button type="button" class="choice" data-pick="custom" data-provider="custom" data-protocol="openai" aria-label="Custom OpenAI-compatible">
-                <span class="choice-title llm-card-top">Custom <span class="llm-tag">url</span></span><span class="llm-card-sub">Any OpenAI-compatible URL</span></button>
+                <span class="choice-title llm-card-top">Fireworks <span class="llm-tag">{{t "llm.tag_key"}}</span></span><span class="llm-card-sub">{{t "llm.card.fireworks"}}</span></button>
+            <button type="button" class="choice" data-pick="custom" data-provider="custom" data-protocol="openai" aria-label="{{t "llm.custom_label"}}">
+                <span class="choice-title llm-card-top">{{t "llm.custom"}} <span class="llm-tag">{{t "llm.tag_url"}}</span></span><span class="llm-card-sub">{{t "llm.card.custom"}}</span></button>
         </div>
     </div>
 
     <div class="stack" id="llm-details" hidden style="gap:14px;">
-        <span class="step-label">2 · Details</span>
+        <span class="step-label">{{t "llm.step2"}}</span>
         <div class="grid-2" style="grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
-            <label class="field" data-show="custom">Connection name
+            <label class="field" data-show="custom">{{t "llm.conn_name"}}
                 <input class="input mono" name="name" pattern="[a-z0-9][a-z0-9-]{0,47}" placeholder="e.g. local" autocomplete="off">
-                <span class="field-hint">Lowercase letters, numbers, hyphens.</span>
+                <span class="field-hint">{{t "llm.conn_hint"}}</span>
             </label>
-            <label class="field">API key
-                <input class="input mono" type="password" name="key" placeholder="Paste your API key" autocomplete="off">
-                <span class="field-hint" id="llm-key-hint">Stored encrypted; never shown again.</span>
+            <label class="field">{{t "llm.api_key"}}
+                <input class="input mono" type="password" name="key" placeholder="{{t "llm.api_ph"}}" autocomplete="off">
+                <span class="field-hint" id="llm-key-hint">{{t "llm.api_hint"}}</span>
             </label>
-            <label class="field" data-show="custom">Base URL
+            <label class="field" data-show="custom">{{t "llm.base"}}
                 <input class="input mono" name="base_url" type="url" placeholder="https://host.example/v1">
-                <span class="field-hint">API prefix, reachable from the VM. No operation path.</span>
+                <span class="field-hint">{{t "llm.base_hint"}}</span>
             </label>
-            <label class="field" data-show="custom openrouter">Model IDs
-                <input class="input mono" name="models" placeholder="vendor/model, another-model">
-                <span class="field-hint">Comma-separated, exactly as the provider names them.</span>
+            <label class="field" data-show="custom openrouter">{{t "llm.models"}}
+                <input class="input mono" name="models" placeholder="{{t "llm.models_ph"}}">
+                <span class="field-hint">{{t "llm.models_hint"}}</span>
             </label>
         </div>
         <div class="stack" data-show="custom" style="gap:8px;">
-            <span class="field">Protocol</span>
+            <span class="field">{{t "llm.protocol"}}</span>
             {{/* The select is what gets submitted; the segmented buttons only
                  drive it. Its empty option is how a provider-native key says
                  "no protocol" — see TestProviderNativeKeySavesWithoutAProtocol. */}}
-            <label class="sr-only" for="llm-protocol">Protocol</label>
+            <label class="sr-only" for="llm-protocol">{{t "llm.protocol"}}</label>
             <select name="protocol" id="llm-protocol" class="sr-only">
-                <option value="">Default — chat completions</option>
-                <option value="openai">OpenAI chat completions</option>
-                <option value="openai-responses">OpenAI responses</option>
-                <option value="anthropic">Anthropic messages</option>
+                <option value="">{{t "llm.proto.default"}}</option>
+                <option value="openai">{{t "llm.proto.openai"}}</option>
+                <option value="openai-responses">{{t "llm.proto.responses"}}</option>
+                <option value="anthropic">{{t "llm.proto.anthropic"}}</option>
                 <option value="gemini">Gemini</option>
             </select>
             <div class="seg" id="llm-protocols" aria-hidden="true">
-                <button type="button" data-proto="openai" data-hint="POST {base}/chat/completions — OpenRouter, vLLM, Ollama, most servers">Chat completions</button>
-                <button type="button" data-proto="openai-responses" data-hint="POST {base}/responses — required by OpenModel">Responses</button>
-                <button type="button" data-proto="anthropic" data-hint="Base URL used verbatim — give the full messages URL">Anthropic</button>
-                <button type="button" data-proto="gemini" data-hint="Base URL used verbatim — give the full operation URL">Gemini</button>
+                <button type="button" data-proto="openai" data-hint="{{t "llm.proto.chat_hint"}}">{{t "llm.proto.chat"}}</button>
+                <button type="button" data-proto="openai-responses" data-hint="{{t "llm.proto.resp_hint"}}">{{t "llm.proto.resp_btn"}}</button>
+                <button type="button" data-proto="anthropic" data-hint="{{t "llm.proto.anth_hint"}}">Anthropic</button>
+                <button type="button" data-proto="gemini" data-hint="{{t "llm.proto.gem_hint"}}">Gemini</button>
             </div>
             <span class="mono" id="llm-proto-hint" style="font-size:12px; color:oklch(0.66 0.008 70);"></span>
         </div>
         <p class="tone-danger" id="llm-form-error" style="font-size:13px;" hidden></p>
         <div class="form-actions">
-            <button type="button" class="btn" data-llm-cancel>Cancel</button>
-            <button type="submit" class="btn btn-primary" style="padding:0 16px;">Save connection</button>
+            <button type="button" class="btn" data-llm-cancel>{{t "common.cancel"}}</button>
+            <button type="submit" class="btn btn-primary" style="padding:0 16px;">{{t "common.save"}}</button>
         </div>
     </div>
 </form>
@@ -144,8 +144,8 @@
         });
         document.getElementById("llm-proto-hint").textContent = hint.replace("{base}", form.elements.base_url.value.trim() || "{base}");
         var key = form.elements.key;
-        key.placeholder = editing ? "Leave blank to keep the saved key" : "Paste your API key";
-        document.getElementById("llm-key-hint").textContent = k === "custom" ? "Optional for custom endpoints." : editing ? "The saved key is never shown." : "Stored encrypted; never shown again.";
+        key.placeholder = editing ? {{t "llm.key_blank" | js}} : {{t "llm.api_ph" | js}};
+        document.getElementById("llm-key-hint").textContent = k === "custom" ? {{t "llm.key_optional" | js}} : editing ? {{t "llm.key_hidden" | js}} : {{t "llm.api_hint" | js}};
         form.querySelectorAll("[data-pick]").forEach(function (c) {
             c.classList.toggle("on", c.getAttribute("data-pick") === form.dataset.picked);
         });
@@ -153,7 +153,7 @@
 
     function open(isEdit) {
         editing = isEdit;
-        document.getElementById("llm-form-title").textContent = isEdit ? "Edit connection" : "New connection";
+        document.getElementById("llm-form-title").textContent = isEdit ? {{t "llm.edit" | js}} : {{t "llm.new" | js}};
         form.hidden = false;
         document.getElementById("llm-add").hidden = true;
         setError("");
@@ -205,15 +205,15 @@
         if (e.detail.elt !== form) return;
         var k = kind();
         var msg = "";
-        if (k === "custom" && !/^[a-z0-9][a-z0-9-]{0,47}$/.test(form.elements.name.value)) msg = "Give the connection a name: lowercase letters, numbers and hyphens.";
-        else if (k === "custom" && !form.elements.base_url.value.trim()) msg = "Custom connections need a Base URL.";
-        else if (k !== "custom" && !editing && !form.elements.key.value) msg = "Paste the API key for this provider.";
+        if (k === "custom" && !/^[a-z0-9][a-z0-9-]{0,47}$/.test(form.elements.name.value)) msg = {{t "llm.err.name" | js}};
+        else if (k === "custom" && !form.elements.base_url.value.trim()) msg = {{t "llm.err.base" | js}};
+        else if (k !== "custom" && !editing && !form.elements.key.value) msg = {{t "llm.err.key" | js}};
         if (msg) { e.preventDefault(); setError(msg); }
     });
     form.addEventListener("htmx:afterRequest", function (e) {
         if (e.detail.elt !== form || !e.detail.successful) return;
         close();
-        svkToast("Saved · syncing to running VMs");
+        svkToast({{t "llm.saved" | js}});
     });
 
     // Editing loads the stored connection back into the form. Saving replaces

@@ -14,7 +14,7 @@
     <div class="busy-mask" aria-hidden="true"><div><span class="spin"></span><span class="busy-msg"></span></div></div>
 
     <div class="crumbs">
-        <a href="/dashboard/vms">← Virtual machines</a><span>/</span><span class="mono">{{.Name}}</span>
+        <a href="/dashboard/vms">{{t "vm.back"}}</a><span>/</span><span class="mono">{{.Name}}</span>
     </div>
 
     <header class="detail-head">
@@ -22,26 +22,26 @@
             <div class="title-line">
                 <h1>{{.Name}}</h1>
                 <span class="status-pill st-{{statusClass .Status}}">{{statusLabel .Status}}</span>
-                {{if .SharedAccess}}<span class="pill round">Shared with you</span>
-                {{else if .AppPublic}}<span class="pill pill-accent round">Public</span>
-                {{else}}<span class="pill round">Private</span>{{end}}
+                {{if .SharedAccess}}<span class="pill round">{{t "vms.shared_you"}}</span>
+                {{else if .AppPublic}}<span class="pill pill-accent round">{{t "vms.public"}}</span>
+                {{else}}<span class="pill round">{{t "vms.private"}}</span>{{end}}
             </div>
-            <p class="detail-meta">{{.CPULimit}} vCPU · {{memSize .MemoryMB}} · {{.DiskGB}} GB · {{if .IPAddress}}{{.IPAddress}}{{else}}no IP while stopped{{end}} · created {{shortDate .CreatedAt}}</p>
+            <p class="detail-meta">{{.CPULimit}} vCPU · {{memSize .MemoryMB}} · {{.DiskGB}} GB · {{if .IPAddress}}{{.IPAddress}}{{else}}{{t "vm.no_ip"}}{{end}} · {{t "vm.created"}} {{shortDate .CreatedAt}}</p>
         </div>
         <div class="head-actions">
             {{if eq .Status "running"}}
-            <a class="btn btn-raised" href="/dashboard/vms/{{.ID}}/shell">Terminal</a>
-            <a class="btn btn-primary" href="https://agent-{{.Name}}.{{domain}}/" target="_blank" rel="noopener">Open PicoClaw ↗</a>
+            <a class="btn btn-raised" href="/dashboard/vms/{{.ID}}/shell">{{t "vms.terminal"}}</a>
+            <a class="btn btn-primary" href="https://agent-{{.Name}}.{{domain}}/" target="_blank" rel="noopener">{{t "vm.open_picoclaw"}}</a>
             {{if $owner}}
             <button class="btn btn-raised"
                 hx-post="/dashboard/vms/{{.ID}}/stop"
                 hx-target="#vm-{{.ID}}"
                 hx-swap="outerHTML"
                 hx-disabled-elt="this"
-                hx-confirm="Anything running inside it, including the agent's current task, stops."
-                data-confirm-title="Stop {{.Name}}?"
-                data-confirm-cta="Stop VM"
-                hx-on::before-request="omcBusy(this, 'Stopping…')">Stop</button>
+                hx-confirm="{{t "vm.stop_body"}}"
+                data-confirm-title="{{tf "vm.stop_title" .Name}}"
+                data-confirm-cta="{{t "vm.stop_cta"}}"
+                hx-on::before-request="omcBusy(this, '{{t "vm.stopping"}}')">{{t "vm.stop"}}</button>
             {{end}}
             {{else if eq .Status "stopped"}}
             {{if $owner}}
@@ -50,11 +50,11 @@
                 hx-target="#vm-{{.ID}}"
                 hx-swap="outerHTML"
                 hx-disabled-elt="this"
-                hx-on::before-request="omcBusy(this, 'Starting…')">Start</button>
+                hx-on::before-request="omcBusy(this, '{{t "vms.starting"}}')">{{t "vms.start"}}</button>
             {{end}}
             {{else if eq .Status "error"}}
             {{if $owner}}
-            <span class="pill" style="height:36px; padding:0 14px; border-radius:9px;">Something went wrong — try Recreate in Settings</span>
+            <span class="pill" style="height:36px; padding:0 14px; border-radius:9px;">{{t "vm.error_hint"}}</span>
             {{end}}
             {{else}}
             <span class="head-busy"><span class="spin"></span>{{statusLabel .Status}}…</span>
@@ -62,12 +62,12 @@
         </div>
     </header>
 
-    <nav class="tabs" aria-label="VM sections">
-        <a href="#overview" data-tab="overview" class="on">Overview</a>
+    <nav class="tabs" aria-label="{{t "vm.sections"}}">
+        <a href="#overview" data-tab="overview" class="on">{{t "vm.tab.overview"}}</a>
         {{if $owner}}
-        <a href="#network" data-tab="network">Network</a>
-        <a href="#access" data-tab="access">Access</a>
-        <a href="#settings" data-tab="settings">Settings</a>
+        <a href="#network" data-tab="network">{{t "vm.tab.network"}}</a>
+        <a href="#access" data-tab="access">{{t "vm.tab.access"}}</a>
+        <a href="#settings" data-tab="settings">{{t "vm.tab.settings"}}</a>
         {{end}}
     </nav>
 
@@ -77,7 +77,7 @@
             <div class="stack">
                 <section class="panel">
                     <div class="panel-head" style="align-items:center;">
-                        <h3>Initial task</h3>
+                        <h3>{{t "vm.task"}}</h3>
                         {{if $t.Has}}
                         <span class="task-state tone-{{$t.Tone}}">{{if $t.Spin}}<span class="vm-task-spinner" aria-hidden="true"></span>{{end}}{{$t.Label}}</span>
                         {{end}}
@@ -93,7 +93,7 @@
                     </div>
                     <p class="task-text">{{.InitialTask}}</p>
                     {{if $t.OnHold}}
-                    <p class="panel-sub">On hold while the VM is not running — picked back up on its next start.</p>
+                    <p class="panel-sub">{{t "vm.task.hold"}}</p>
                     {{else if .InitialTaskError}}
                     <p class="panel-sub tone-danger">{{.InitialTaskError}}</p>
                     {{end}}
@@ -101,38 +101,38 @@
                     <div class="head-actions">
                         {{if $t.CanWatch}}
                         <a class="btn btn-sm" target="_blank" rel="noopener"
-                           href="https://agent-{{.Name}}.{{domain}}/c/{{.InitialTaskConversation}}">Watch conversation ↗</a>
+                           href="https://agent-{{.Name}}.{{domain}}/c/{{.InitialTaskConversation}}">{{t "vm.task.watch"}}</a>
                         {{end}}
                         {{if and $t.Failed $owner}}
                         <button class="btn btn-sm btn-primary"
                             hx-post="/dashboard/vms/{{.ID}}/task/retry"
                             hx-target="#vm-{{.ID}}"
-                            hx-swap="outerHTML">Retry task</button>
-                        <a class="btn btn-sm" href="/dashboard/keys">Check LLM keys</a>
+                            hx-swap="outerHTML">{{t "vm.task.retry"}}</button>
+                        <a class="btn btn-sm" href="/dashboard/keys">{{t "vm.task.keys"}}</a>
                         {{end}}
                     </div>
                     {{end}}
                     {{else}}
-                    <p class="panel-sub" style="font-size:13.5px;">This VM started idle. Open PicoClaw to give the agent its first instruction.</p>
+                    <p class="panel-sub" style="font-size:13.5px;">{{t "vm.task.idle"}}</p>
                     {{end}}
                 </section>
 
                 <section class="panel endpoints">
                     <div class="endpoint">
                         <div class="endpoint-main">
-                            <span class="endpoint-label">Your service · port {{.AppPort}}</span>
+                            <span class="endpoint-label">{{tf "vm.endpoint.service" .AppPort}}</span>
                             <a class="endpoint-value" href="https://{{.Name}}.{{domain}}/" target="_blank" rel="noopener">https://{{.Name}}.{{domain}}</a>
                         </div>
-                        <span class="endpoint-who">{{if .AppPublic}}Anyone{{else}}You &amp; share links{{end}}</span>
-                        <button type="button" class="btn btn-2xs" data-copy="https://{{.Name}}.{{domain}}">Copy</button>
+                        <span class="endpoint-who">{{if .AppPublic}}{{t "vm.endpoint.anyone"}}{{else}}{{t "vm.endpoint.share"}}{{end}}</span>
+                        <button type="button" class="btn btn-2xs" data-copy="https://{{.Name}}.{{domain}}">{{t "common.copy"}}</button>
                     </div>
                     <div class="endpoint">
                         <div class="endpoint-main">
-                            <span class="endpoint-label">PicoClaw agent</span>
+                            <span class="endpoint-label">{{t "vm.endpoint.agent"}}</span>
                             <a class="endpoint-value" href="https://agent-{{.Name}}.{{domain}}/" target="_blank" rel="noopener">https://agent-{{.Name}}.{{domain}}</a>
                         </div>
-                        <span class="endpoint-who">You &amp; members</span>
-                        <button type="button" class="btn btn-2xs" data-copy="https://agent-{{.Name}}.{{domain}}">Copy</button>
+                        <span class="endpoint-who">{{t "vm.endpoint.members"}}</span>
+                        <button type="button" class="btn btn-2xs" data-copy="https://agent-{{.Name}}.{{domain}}">{{t "common.copy"}}</button>
                     </div>
                     <div class="endpoint">
                         {{/* The full Incus name, not the short one: short names are
@@ -143,24 +143,24 @@
                             <span class="endpoint-label">SSH</span>
                             <span class="endpoint-value">{{$ssh}}</span>
                         </div>
-                        <span class="endpoint-who">Your keys</span>
-                        <button type="button" class="btn btn-2xs" data-copy="{{$ssh}}">Copy</button>
+                        <span class="endpoint-who">{{t "vm.endpoint.keys"}}</span>
+                        <button type="button" class="btn btn-2xs" data-copy="{{$ssh}}">{{t "common.copy"}}</button>
                     </div>
                 </section>
             </div>
 
             <section class="panel" style="gap:14px;">
-                <h3>Resources</h3>
+                <h3>{{t "vms.col.resources"}}</h3>
                 <div class="res-grid">
-                    <div class="res inset"><span class="res-label">CPU</span><span class="res-value">{{.CPULimit}} vCPU</span></div>
-                    <div class="res inset"><span class="res-label">Memory</span><span class="res-value">{{memSize .MemoryMB}}</span></div>
-                    <div class="res inset"><span class="res-label">Disk</span><span class="res-value">{{.DiskGB}} GB</span></div>
-                    <div class="res inset"><span class="res-label">IP address</span><span class="res-value">{{if .IPAddress}}{{.IPAddress}}{{else}}—{{end}}</span></div>
+                    <div class="res inset"><span class="res-label">{{t "vm.res.cpu"}}</span><span class="res-value">{{.CPULimit}} vCPU</span></div>
+                    <div class="res inset"><span class="res-label">{{t "vm.res.memory"}}</span><span class="res-value">{{memSize .MemoryMB}}</span></div>
+                    <div class="res inset"><span class="res-label">{{t "vm.res.disk"}}</span><span class="res-value">{{.DiskGB}} GB</span></div>
+                    <div class="res inset"><span class="res-label">{{t "vm.res.ip"}}</span><span class="res-value">{{if .IPAddress}}{{.IPAddress}}{{else}}—{{end}}</span></div>
                 </div>
                 <div class="facts">
-                    <div class="kv"><span>Nested containers</span><span class="{{if not .NestingEffective}}tone-mute{{end}}">{{if .NestingEffective}}On{{else}}Off{{end}}</span></div>
-                    <div class="kv"><span>Custom domains</span><span>{{len .Aliases}}</span></div>
-                    {{if $owner}}<div class="kv"><span>Members</span><span>{{len .Members}}</span></div>{{end}}
+                    <div class="kv"><span>{{t "vm.fact.nesting"}}</span><span class="{{if not .NestingEffective}}tone-mute{{end}}">{{if .NestingEffective}}{{t "common.on"}}{{else}}{{t "common.off"}}{{end}}</span></div>
+                    <div class="kv"><span>{{t "vm.fact.domains"}}</span><span>{{len .Aliases}}</span></div>
+                    {{if $owner}}<div class="kv"><span>{{t "vm.fact.members"}}</span><span>{{len .Members}}</span></div>{{end}}
                 </div>
             </section>
         </div>
@@ -175,37 +175,37 @@
                 hx-target="#vm-{{.ID}}"
                 hx-swap="outerHTML">
                 <div class="panel-head"><div>
-                    <h3>Published service</h3>
-                    <p class="panel-sub">What <code>{{.Name}}.{{domain}}</code> serves, and who can reach it.</p>
+                    <h3>{{t "vm.publish.title"}}</h3>
+                    <p class="panel-sub">{{tf "vm.publish.sub" (printf "%s.%s" .Name (domain))}}</p>
                 </div></div>
                 <div class="head-actions" style="gap:16px; align-items:flex-end;">
-                    <label class="field">Port
+                    <label class="field">{{t "vm.publish.port"}}
                         <input class="input mono" name="app_port" type="number" min="1" max="65535" value="{{.AppPort}}" style="width:120px;">
                     </label>
-                    <div class="field">Visibility
+                    <div class="field">{{t "vm.publish.visibility"}}
                         <div class="seg seg-accent">
-                            <label><input type="radio" name="app_public" value=""{{if not .AppPublic}} checked{{end}}>Private</label>
-                            <label><input type="radio" name="app_public" value="1"{{if .AppPublic}} checked{{end}}>Public</label>
+                            <label><input type="radio" name="app_public" value=""{{if not .AppPublic}} checked{{end}}>{{t "vms.private"}}</label>
+                            <label><input type="radio" name="app_public" value="1"{{if .AppPublic}} checked{{end}}>{{t "vms.public"}}</label>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-lg btn-quiet" data-publish-save>Save changes</button>
+                    <button type="submit" class="btn btn-lg btn-quiet" data-publish-save>{{t "vm.publish.save"}}</button>
                 </div>
                 <div data-publish-note class="note {{if .AppPublic}}note-accent{{else}}note-plain{{end}}">
-                    {{if .AppPublic}}Anyone with the link reaches port {{.AppPort}}. Other ports and PicoClaw stay behind your login.{{else}}Only you, members and share links reach port {{.AppPort}}.{{end}}
+                    {{if .AppPublic}}{{tf "vm.publish.public" .AppPort}}{{else}}{{tf "vm.publish.private" .AppPort}}{{end}}
                 </div>
             </form>
 
             <section class="panel">
                 <div class="panel-head">
                     <div>
-                        <h3>Custom domains</h3>
-                        <p class="panel-sub">Serve this VM on a domain you own. Never exposes the agent.</p>
+                        <h3>{{t "vm.alias.title"}}</h3>
+                        <p class="panel-sub">{{t "vm.alias.sub"}}</p>
                     </div>
                     <span class="mono" style="font-size:12px; color:var(--fg-mute);">{{len .Aliases}} / {{maxAliases}}</span>
                 </div>
                 {{range .Aliases}}
                 <div class="alias-row inset">
-                    {{if .Verified}}<span class="badge badge-running">verified</span>{{else}}<span class="badge badge-stopped">unverified</span>{{end}}
+                    {{if .Verified}}<span class="badge badge-running">{{t "vm.alias.verified"}}</span>{{else}}<span class="badge badge-stopped">{{t "vm.alias.unverified"}}</span>{{end}}
                     <div class="alias-main">
                         {{if and .Verified (eq $.Status "running")}}
                         <a href="https://{{.Hostname}}/" target="_blank" rel="noopener" class="alias-host">{{.Hostname}}</a>
@@ -213,44 +213,44 @@
                         <span class="alias-host">{{.Hostname}}</span>
                         {{end}}
                         {{if .LastError}}<span class="alias-note warn">{{.LastError}}</span>
-                        {{else if .Verified}}<span class="alias-note ok">Verified · TLS active</span>
-                        {{else}}<span class="alias-note warn">Waiting for DNS</span>{{end}}
+                        {{else if .Verified}}<span class="alias-note ok">{{t "vm.alias.tls"}}</span>
+                        {{else}}<span class="alias-note warn">{{t "vm.alias.dns"}}</span>{{end}}
                     </div>
                     <button class="btn btn-2xs"
                         hx-post="/dashboard/vms/{{$.ID}}/aliases/{{.ID}}/verify"
                         hx-target="#vm-{{$.ID}}"
-                        hx-swap="outerHTML">Re-check</button>
+                        hx-swap="outerHTML">{{t "vm.alias.recheck"}}</button>
                     <button class="btn btn-2xs btn-danger"
                         hx-delete="/dashboard/vms/{{$.ID}}/aliases/{{.ID}}"
                         hx-target="#vm-{{$.ID}}"
                         hx-swap="outerHTML"
-                        hx-confirm="The domain stops serving this VM immediately."
-                        data-confirm-title="Remove {{.Hostname}}?"
-                        data-confirm-cta="Remove"
-                        data-confirm-danger>Remove</button>
+                        hx-confirm="{{t "vm.alias.remove_body"}}"
+                        data-confirm-title="{{tf "vm.alias.remove_title" .Hostname}}"
+                        data-confirm-cta="{{t "common.remove"}}"
+                        data-confirm-danger>{{t "common.remove"}}</button>
                 </div>
                 {{end}}
                 {{if and (not .AppPublic) .Aliases}}
                 <div class="note note-warn">
-                    <span style="flex:1;">This VM is private, so its custom domains only work through share links — your session cookie is scoped to {{domain}} and never reaches a custom domain.</span>
+                    <span style="flex:1;">{{tf "vm.alias.private_note" (domain)}}</span>
                     <button type="button" class="btn-link"
                         hx-post="/dashboard/vms/{{.ID}}/publish"
                         hx-vals='{"app_port": "{{.AppPort}}", "app_public": "1"}'
                         hx-target="#vm-{{.ID}}"
-                        hx-swap="outerHTML">Make public</button>
+                        hx-swap="outerHTML">{{t "vm.alias.make_public"}}</button>
                 </div>
                 {{end}}
                 <form class="form-row"
                     hx-post="/dashboard/vms/{{.ID}}/aliases"
                     hx-target="#vm-{{.ID}}"
                     hx-swap="outerHTML">
-                    <input class="input mono" name="hostname" type="text" placeholder="app.example.org" autocomplete="off" aria-label="Hostname" style="flex:1;">
-                    <button type="submit" class="btn btn-lg btn-quiet">Add domain</button>
+                    <input class="input mono" name="hostname" type="text" placeholder="app.example.org" autocomplete="off" aria-label="{{t "vm.alias.hostname"}}" style="flex:1;">
+                    <button type="submit" class="btn btn-lg btn-quiet">{{t "vm.alias.add"}}</button>
                 </form>
                 <ol class="alias-steps">
-                    <li>Create a <code>CNAME</code> record for your hostname pointing at <code>{{host}}</code>.</li>
-                    <li>Add the hostname above. It is verified automatically; TLS is issued once it passes.</li>
-                    <li>DNS not propagated yet? It stays saved — press Re-check later.</li>
+                    <li>{{t "vm.alias.step1_before"}} <code>CNAME</code> {{t "vm.alias.step1_after"}} <code>{{host}}</code>.</li>
+                    <li>{{t "vm.alias.step2"}}</li>
+                    <li>{{t "vm.alias.step3"}}</li>
                 </ol>
             </section>
         </div>
@@ -261,35 +261,35 @@
         <div class="grid-2">
             <form class="panel" style="gap:14px;" method="post" action="/dashboard/vms/{{.ID}}/access">
                 <div class="panel-head"><div>
-                    <h3>Invite someone</h3>
-                    <p class="panel-sub">Members can use SSH, the terminal, apps and PicoClaw. Managing the VM and its access stays with you.</p>
+                    <h3>{{t "vm.access.invite"}}</h3>
+                    <p class="panel-sub">{{t "vm.access.sub"}}</p>
                 </div></div>
                 {{if .AccessError}}<div class="alert-error" role="alert">{{.AccessError}}</div>{{end}}
-                <label class="field">Email
+                <label class="field">{{t "common.email"}}
                     <input class="input" type="email" name="email" required maxlength="254" placeholder="teammate@company.com" value="{{.AccessEmail}}">
                 </label>
-                <label class="field">Their SSH public key
+                <label class="field">{{t "vm.access.key"}}
                     <textarea class="input mono" name="public_key" required rows="3" placeholder="ssh-ed25519 AAAA…"></textarea>
-                    <span class="field-hint">For an existing account, use a key already registered on that account.</span>
+                    <span class="field-hint">{{t "vm.access.key_hint"}}</span>
                 </label>
-                <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Grant access</button>
+                <button type="submit" class="btn btn-primary" style="align-self:flex-start;">{{t "vm.access.grant"}}</button>
             </form>
             <section class="panel" style="gap:12px;">
-                <h3>Members</h3>
+                <h3>{{t "vm.fact.members"}}</h3>
                 {{range .Members}}
                 <form class="member-row" method="post" action="/dashboard/vms/{{$.ID}}/access/{{.ID}}/revoke"
-                      data-confirm="New connections are blocked and active sessions close within seconds. Processes already started inside the VM are not undone."
-                      data-confirm-title="Revoke access for {{.Email}}?"
-                      data-confirm-cta="Revoke"
+                      data-confirm="{{t "vm.access.revoke_body"}}"
+                      data-confirm-title="{{tf "vm.access.revoke_title" .Email}}"
+                      data-confirm-cta="{{t "vm.access.revoke"}}"
                       data-confirm-danger>
                     <span class="avatar avatar-member">{{initial .Email}}</span>
                     <span>{{.Email}}</span>
-                    <button type="submit" class="btn btn-2xs btn-danger">Revoke</button>
+                    <button type="submit" class="btn btn-2xs btn-danger">{{t "vm.access.revoke"}}</button>
                 </form>
                 {{else}}
-                <p class="panel-sub" style="color:var(--fg-mute);">Only you can use this VM.</p>
+                <p class="panel-sub" style="color:var(--fg-mute);">{{t "vm.access.only_you"}}</p>
                 {{end}}
-                <p class="panel-note">Members reach it with <code>ssh -p 2222 {{.IncusName}}@{{host}}</code> and set a web password with <code>ssh -t -p 2222 svkexe@{{host}} passwd</code>. Revoking closes their connections within seconds.</p>
+                <p class="panel-note">{{t "vm.access.note_before"}} <code>ssh -p 2222 {{.IncusName}}@{{host}}</code> {{t "vm.access.note_mid"}} <code>ssh -t -p 2222 svkexe@{{host}} passwd</code>. {{t "vm.access.note_after"}}</p>
             </section>
         </div>
     </div>
@@ -307,14 +307,14 @@
                 hx-swap="outerHTML">
                 <div class="toggle-row">
                     <div>
-                        <h3><label for="nesting-{{.ID}}">Nested containers</label></h3>
+                        <h3><label for="nesting-{{.ID}}">{{t "vm.fact.nesting"}}</label></h3>
                         <p class="panel-sub">
                             {{if not .NestingAllowed}}
-                            Turned off for this whole deployment by an administrator, so Docker cannot start here.
+                            {{t "vm.nest.off_deploy"}}
                             {{else if .Nesting}}
-                            Docker, buildah and nested Incus can create containers inside this VM.
+                            {{t "vm.nest.on"}}
                             {{else}}
-                            Docker cannot create containers in this VM. Builds have to run from source.
+                            {{t "vm.nest.off"}}
                             {{end}}
                         </p>
                     </div>
@@ -322,52 +322,52 @@
                 </div>
                 {{if .NestingPending}}
                 <div class="note note-warn">
-                    <span style="flex:1;">Saved — takes effect on the next start.</span>
+                    <span style="flex:1;">{{t "vm.nest.pending"}}</span>
                     <button type="button" class="btn btn-xs" style="background:var(--warn); border-color:transparent; color:oklch(0.2 0.04 85); font-weight:600;"
                         hx-post="/dashboard/vms/{{.ID}}/restart"
                         hx-target="#vm-{{.ID}}"
                         hx-swap="outerHTML"
                         hx-disabled-elt="this"
-                        hx-confirm="Anything running inside it, including the agent's current task, stops."
-                        data-confirm-title="Restart {{.Name}}?"
-                        data-confirm-cta="Restart"
-                        hx-on::before-request="omcBusy(this, 'Restarting…')">Restart now</button>
+                        hx-confirm="{{t "vm.stop_body"}}"
+                        data-confirm-title="{{tf "vm.nest.restart_title" .Name}}"
+                        data-confirm-cta="{{t "vm.nest.restart_cta"}}"
+                        hx-on::before-request="omcBusy(this, '{{t "vm.nest.restarting"}}')">{{t "vm.nest.restart"}}</button>
                 </div>
                 {{end}}
             </form>
 
             <section class="danger-zone">
-                <div class="danger-zone-head">Danger zone</div>
+                <div class="danger-zone-head">{{t "vm.danger"}}</div>
                 <div class="danger-zone-row">
                     <div>
-                        <div style="font-weight:500;">Recreate VM</div>
-                        <div class="panel-sub">Backs up the agent's data, rebuilds from the latest base image, restores.</div>
+                        <div style="font-weight:500;">{{t "vm.recreate"}}</div>
+                        <div class="panel-sub">{{t "vm.recreate_sub"}}</div>
                     </div>
                     <button class="btn btn-sm"
                         hx-post="/dashboard/vms/{{.ID}}/recreate"
                         hx-target="#vm-{{.ID}}"
                         hx-swap="outerHTML"
                         hx-disabled-elt="this"
-                        hx-confirm="The agent's data is backed up, the VM is rebuilt from the current base image, then restored. It is offline for a few minutes."
-                        data-confirm-title="Recreate {{.Name}}?"
-                        data-confirm-cta="Recreate"
-                        hx-on::before-request="omcBusy(this, 'Recreating…')">Recreate…</button>
+                        hx-confirm="{{t "vm.recreate_body"}}"
+                        data-confirm-title="{{tf "vm.recreate_title" .Name}}"
+                        data-confirm-cta="{{t "vm.recreate_cta"}}"
+                        hx-on::before-request="omcBusy(this, '{{t "vm.recreating"}}')">{{t "vm.recreate_btn"}}</button>
                 </div>
                 <div class="danger-zone-row">
                     <div>
-                        <div style="font-weight:500;">Delete VM</div>
-                        <div class="panel-sub">Removes the VM, its disk and every file on it.</div>
+                        <div style="font-weight:500;">{{t "vm.delete"}}</div>
+                        <div class="panel-sub">{{t "vm.delete_sub"}}</div>
                     </div>
                     <button class="btn btn-sm btn-danger-solid"
                         hx-delete="/dashboard/vms/{{.ID}}"
                         hx-swap="none"
                         hx-disabled-elt="this"
-                        hx-confirm="The VM, its disk and all data inside it are removed. This cannot be undone."
-                        data-confirm-title="Delete {{.Name}}?"
-                        data-confirm-cta="Delete VM"
+                        hx-confirm="{{t "vm.delete_body"}}"
+                        data-confirm-title="{{tf "vm.delete_title" .Name}}"
+                        data-confirm-cta="{{t "vm.delete_cta"}}"
                         data-confirm-danger
-                        hx-on::before-request="omcBusy(this, 'Deleting…')"
-                        hx-on::after-request="if(event.detail.successful){window.location.href='/dashboard/vms'}">Delete…</button>
+                        hx-on::before-request="omcBusy(this, '{{t "vm.deleting"}}')"
+                        hx-on::after-request="if(event.detail.successful){window.location.href='/dashboard/vms'}">{{t "vm.delete_btn"}}</button>
                 </div>
             </section>
         </div>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="{{.Lang}}" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -95,15 +95,21 @@
         .side-nav { display: flex; flex-direction: column; gap: 2px; }
         .side-nav a {
             display: flex; align-items: center; gap: 10px;
-            height: 36px; padding: 0 10px; border-radius: 8px;
+            min-height: 36px; height: auto; padding: 8px 10px; border-radius: 8px;
             font-size: 13.5px; font-weight: 500; color: var(--fg-dim);
         }
         .side-nav a:hover { color: var(--fg); }
         .side-nav a.active { background: oklch(0.23 0.008 60); color: var(--fg); }
         .nav-mark { width: 6px; height: 6px; border-radius: 2px; background: transparent; }
         .side-nav a.active .nav-mark { background: var(--accent); }
-        .nav-label { flex: 1; }
-        .nav-count { font-family: var(--mono); font-size: 11px; color: var(--fg-mute); }
+        .nav-label { flex: 1; min-width: 0; overflow-wrap: anywhere; line-height: 1.25; }
+        .lang-switch { display: flex; gap: 4px; align-items: center; }
+        .lang-switch button {
+            height: 26px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--line);
+            background: transparent; color: var(--fg-mute); font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+        }
+        .lang-switch button.on { color: var(--fg); border-color: var(--line-strong); background: var(--bg-chip); }
+        .lang-switch button:hover { color: var(--fg); }
         .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 12px; }
         .ssh-hint {
             display: flex; flex-direction: column; gap: 4px; padding: 12px;
@@ -548,20 +554,25 @@
     <aside class="side">
         <div class="side-head">
             <a href="/dashboard/vms" class="mark"><span class="bracket">[</span>svkexe<span class="bracket">]</span></a>
+            <form class="lang-switch" method="post" action="/lang" aria-label="{{t "lang.switch"}}">
+                <input type="hidden" name="next" value="{{.Path}}">
+                <button type="submit" name="lang" value="en"{{if eq .Lang "en"}} class="on" aria-current="true"{{end}}>EN</button>
+                <button type="submit" name="lang" value="ru"{{if eq .Lang "ru"}} class="on" aria-current="true"{{end}}>RU</button>
+            </form>
             {{if .Domain}}<span class="side-domain">{{.Domain}}</span>{{end}}
         </div>
         <nav class="side-nav">
-            <a href="/dashboard/vms"><span class="nav-mark"></span><span class="nav-label">Virtual machines</span><span class="nav-count">{{.Nav.VMs}}</span></a>
+            <a href="/dashboard/vms"><span class="nav-mark"></span><span class="nav-label">{{t "nav.vms"}}</span><span class="nav-count">{{.Nav.VMs}}</span></a>
             {{if ne .User.Role "guest"}}<a href="/dashboard/keys"><span class="nav-mark"></span><span class="nav-label">LLM</span><span class="nav-count">{{.Nav.LLM}}</span></a>{{end}}
-            <a href="/dashboard/integrations"><span class="nav-mark"></span><span class="nav-label">Integrations</span></a>
-            <a href="/dashboard/ssh-keys"><span class="nav-mark"></span><span class="nav-label">SSH keys</span><span class="nav-count">{{.Nav.SSHKeys}}</span></a>
-            {{if .IsAdmin}}<a href="/dashboard/system"><span class="nav-mark"></span><span class="nav-label">System</span></a>{{end}}
+            <a href="/dashboard/integrations"><span class="nav-mark"></span><span class="nav-label">{{t "nav.integrations"}}</span></a>
+            <a href="/dashboard/ssh-keys"><span class="nav-mark"></span><span class="nav-label">{{t "nav.ssh"}}</span><span class="nav-count">{{.Nav.SSHKeys}}</span></a>
+            {{if .IsAdmin}}<a href="/dashboard/system"><span class="nav-mark"></span><span class="nav-label">{{t "nav.system"}}</span></a>{{end}}
         </nav>
         <div class="side-foot">
             <button type="button" class="ssh-hint" data-copy="ssh -p 2222 svkexe@{{host}}">
-                <span class="ssh-hint-label">Manage over SSH</span>
+                <span class="ssh-hint-label">{{t "nav.ssh_manage"}}</span>
                 <span class="ssh-hint-cmd">ssh -p 2222 svkexe@{{host}}</span>
-                <span class="ssh-hint-note">Click to copy</span>
+                <span class="ssh-hint-note">{{t "nav.ssh_copy"}}</span>
             </button>
             {{if .User}}
             <div class="me">
@@ -586,7 +597,7 @@
         <h2 id="confirm-title"></h2>
         <p class="modal-body" id="confirm-body"></p>
         <div class="form-actions" style="margin-top:6px;">
-            <button type="button" class="btn" data-confirm-answer="no">Cancel</button>
+            <button type="button" class="btn" data-confirm-answer="no">{{t "common.cancel"}}</button>
             <button type="button" class="btn btn-primary" id="confirm-cta" data-confirm-answer="yes"></button>
         </div>
     </div>
@@ -595,6 +606,30 @@
 
 <script>
 (function () {
+    var I18N = {
+        lang: {{.Lang | js}},
+        wrong: {{t "js.wrong" | js}},
+        noAnswer: {{t "js.no_answer" | js}},
+        copied: {{t "js.copied" | js}},
+        copyFail: {{t "js.copy_fail" | js}},
+        sure: {{t "common.sure" | js}},
+        confirm: {{t "common.confirm" | js}},
+        empty: {{t "vms.summary.empty" | js}},
+        one: {{t "vms.summary.js_one" | js}},
+        many: {{t "vms.summary.js_many" | js}},
+        running: {{t "vms.summary.js_run" | js}},
+        publishPublic: {{t "vm.publish.public" | js}},
+        publishPrivate: {{t "vm.publish.private" | js}},
+        nameReserved: {{t "js.name_reserved" | js}},
+        nameRule: {{t "js.name_rule" | js}},
+        nameHint: {{t "create.name_hint" | js}},
+        createToast: {{t "create.toast" | js}},
+        defaultToast: {{t "llm.default_toast" | js}}
+    };
+    function fmt(s) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        return String(s).replace(/%v/g, function () { return args.length ? args.shift() : ""; });
+    }
     // ── Toast ──────────────────────────────────────────────────────────
     var toastTimer;
     window.svkToast = function (msg, tone) {
@@ -611,7 +646,7 @@
     // A failed htmx request explains itself. A form that owns an error slot
     // gets the message there, next to the fields it is about.
     document.body.addEventListener('htmx:responseError', function (e) {
-        var msg = (e.detail.xhr.responseText || '').trim() || 'Something went wrong';
+        var msg = (e.detail.xhr.responseText || '').trim() || I18N.wrong;
         var elt = e.detail.elt;
         // A page polling a VM that was deleted, or whose access was revoked,
         // would otherwise raise the same error every few seconds forever.
@@ -626,7 +661,7 @@
         svkToast(msg, 'danger');
     });
     document.body.addEventListener('htmx:sendError', function () {
-        svkToast('The gateway did not answer. Check your connection and try again.', 'danger');
+        svkToast(I18N.noAnswer, 'danger');
     });
 
     // ── Copy ───────────────────────────────────────────────────────────
@@ -636,9 +671,9 @@
         e.preventDefault();
         e.stopPropagation();
         var text = b.getAttribute('data-copy');
-        var done = function () { svkToast('Copied ' + text); };
+        var done = function () { svkToast(fmt(I18N.copied, text)); };
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(text).then(done, function () { svkToast('Copy failed — select the text instead', 'danger'); });
+            navigator.clipboard.writeText(text).then(done, function () { svkToast(I18N.copyFail, 'danger'); });
         } else {
             done();
         }
@@ -651,10 +686,10 @@
     var pending = null;
     function askConfirm(elt, body, run) {
         var box = document.getElementById('confirm');
-        document.getElementById('confirm-title').textContent = elt.getAttribute('data-confirm-title') || 'Are you sure?';
+        document.getElementById('confirm-title').textContent = elt.getAttribute('data-confirm-title') || I18N.sure;
         document.getElementById('confirm-body').textContent = body;
         var cta = document.getElementById('confirm-cta');
-        cta.textContent = elt.getAttribute('data-confirm-cta') || 'Confirm';
+        cta.textContent = elt.getAttribute('data-confirm-cta') || I18N.confirm;
         cta.className = 'btn ' + (elt.hasAttribute('data-confirm-danger') ? 'btn-danger-solid' : 'btn-primary');
         pending = run;
         box.hidden = false;
@@ -760,7 +795,7 @@
             });
         }
         var sum = document.getElementById('vm-summary');
-        if (sum) sum.textContent = rows.length ? rows.length + (rows.length === 1 ? ' machine' : ' machines') + ' · ' + running + ' running' : 'Nothing here yet';
+        if (sum) sum.textContent = rows.length ? rows.length + (rows.length === 1 ? I18N.one : I18N.many) + ' · ' + running + I18N.running : I18N.empty;
     };
     document.addEventListener('click', function (e) {
         var f = e.target.closest('[data-filter]');
@@ -822,8 +857,8 @@
         if (note) {
             note.className = 'note ' + (isPublic ? 'note-accent' : 'note-plain');
             note.textContent = isPublic
-                ? 'Anyone with the link reaches port ' + port.value + '. Other ports and PicoClaw stay behind your login.'
-                : 'Only you, members and share links reach port ' + port.value + '.';
+                ? fmt(I18N.publishPublic, port.value)
+                : fmt(I18N.publishPrivate, port.value);
         }
     }
     document.addEventListener('input', function (e) {
@@ -847,13 +882,13 @@
         var bad = '';
         if (v && !NAME_RE.test(v)) {
             bad = (v.indexOf('agent-') === 0 || /^[0-9]{1,5}-/.test(v))
-                ? '“agent-” and port prefixes like “3000-” are reserved for VM URLs.'
-                : 'Use 2–63 lowercase letters, numbers and hyphens.';
+                ? I18N.nameReserved
+                : I18N.nameRule;
         }
         name.classList.toggle('bad', !!bad);
         hint.className = 'field-hint' + (bad ? ' tone-danger' : '');
         var n = v || 'name';
-        hint.textContent = bad || ('Service at ' + n + '.' + host + ' · agent at agent-' + n + '.' + host);
+        hint.textContent = bad || fmt(I18N.nameHint, n, host, n, host);
         var size = form.querySelector('input[name="size"]:checked');
         form.querySelectorAll('.choice').forEach(function (c) { c.classList.toggle('on', c.contains(size)); });
         form.querySelector('[data-custom]').hidden = !size || size.value !== 'custom';

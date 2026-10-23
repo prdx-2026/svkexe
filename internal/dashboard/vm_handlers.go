@@ -63,7 +63,7 @@ func (d *Dashboard) getVMs(w http.ResponseWriter, r *http.Request) {
 
 	data := d.newData(r)
 	data.Containers = containers
-	d.renderPage(w, "vms.html", data)
+	d.renderPage(w, r, "vms.html", data)
 }
 
 // getVMList handles GET /dashboard/vms/list — htmx partial refresh.
@@ -103,13 +103,13 @@ func (d *Dashboard) getVMList(w http.ResponseWriter, r *http.Request) {
 	if len(containers) == 0 {
 		data.Nav = d.navCounts(user)
 	}
-	d.render(w, "vm_list_content", data)
+	d.render(w, r, "vm_list_content", data)
 }
 
 // getVMCreate handles GET /dashboard/vms/create — returns create form partial.
 func (d *Dashboard) getVMCreate(w http.ResponseWriter, r *http.Request) {
 	data := d.fragmentData(r)
-	d.render(w, "vm_create_form", data)
+	d.render(w, r, "vm_create_form", data)
 }
 
 // postCreateVM handles POST /dashboard/vms — creates a container.
@@ -254,7 +254,7 @@ func (d *Dashboard) postCreateVM(w http.ResponseWriter, r *http.Request) {
 	}
 	data := d.fragmentData(r)
 	data.Containers = containers
-	d.render(w, "vm_list_content", data)
+	d.render(w, r, "vm_list_content", data)
 }
 
 // postStartVM handles POST /dashboard/vms/{id}/start.
@@ -324,7 +324,7 @@ func (d *Dashboard) postStartVM(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c.Status = "running"
-	d.renderCard(w, c)
+	d.renderCard(w, r, c)
 }
 
 // postStopVM handles POST /dashboard/vms/{id}/stop.
@@ -356,7 +356,7 @@ func (d *Dashboard) postStopVM(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c.Status = "stopped"
-	d.renderCard(w, c)
+	d.renderCard(w, r, c)
 }
 
 // postRecreateVM handles POST /dashboard/vms/{id}/recreate.
@@ -471,7 +471,7 @@ func (d *Dashboard) postRecreateVM(w http.ResponseWriter, r *http.Request) {
 
 	// Return updated card immediately with "recreating" status.
 	c.Status = "recreating"
-	d.renderCard(w, c)
+	d.renderCard(w, r, c)
 }
 
 // deleteVM handles DELETE /dashboard/vms/{id}.

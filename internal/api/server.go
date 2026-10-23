@@ -92,6 +92,7 @@ func (s *Server) buildRouter() chi.Router {
 	})
 	r.Get("/login", s.loginGet)
 	r.Get("/register", s.registerGet)
+	r.Post("/lang", s.postLang)
 	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
 	// Mutating auth endpoints: apply the rate limiter when available to make

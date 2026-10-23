@@ -1,26 +1,26 @@
 {{define "content"}}
 <header class="page-head">
     <div>
-        <h1>SSH keys</h1>
-        <p class="sub">Your key is your identity on the SSH gateway — no password needed.</p>
+        <h1>{{t "ssh.title"}}</h1>
+        <p class="sub">{{t "ssh.sub"}}</p>
     </div>
     <button type="button" class="btn btn-primary btn-lg" id="ssh-add"{{if .Error}} hidden{{end}}
-            onclick="this.hidden=true; var f=document.getElementById('ssh-form'); f.hidden=false; f.elements.name.focus();"><span class="plus">+</span>Add key</button>
+            onclick="this.hidden=true; var f=document.getElementById('ssh-form'); f.hidden=false; f.elements.name.focus();"><span class="plus">+</span>{{t "ssh.add"}}</button>
 </header>
 
 <form class="panel panel-focus" id="ssh-form" method="POST" action="/dashboard/ssh-keys" style="gap:14px;"{{if not .Error}} hidden{{end}}>
     {{if .Error}}<div class="alert-error" role="alert">{{.Error}}</div>{{end}}
-    <label class="field" style="max-width:360px;">Name
-        <input class="input" type="text" name="name" placeholder="e.g. MacBook Pro" required>
+    <label class="field" style="max-width:360px;">{{t "ssh.name"}}
+        <input class="input" type="text" name="name" placeholder="{{t "ssh.name_ph"}}" required>
     </label>
-    <label class="field">Public key
+    <label class="field">{{t "ssh.key"}}
         <textarea class="input mono" name="public_key" rows="3" required
-            placeholder="ssh-ed25519 AAAA… — the contents of ~/.ssh/id_ed25519.pub"></textarea>
+            placeholder="{{t "ssh.key_ph"}}"></textarea>
     </label>
     <div class="form-actions">
         <button type="button" class="btn"
-                onclick="var f=this.form; f.reset(); f.hidden=true; document.getElementById('ssh-add').hidden=false;">Cancel</button>
-        <button type="submit" class="btn btn-primary" style="padding:0 16px;">Add key</button>
+                onclick="var f=this.form; f.reset(); f.hidden=true; document.getElementById('ssh-add').hidden=false;">{{t "common.cancel"}}</button>
+        <button type="submit" class="btn btn-primary" style="padding:0 16px;">{{t "ssh.add"}}</button>
     </div>
 </form>
 
@@ -29,45 +29,45 @@
     <div class="list-row" id="ssh-key-{{.ID}}">
         <div style="flex:1 1 200px; display:flex; flex-direction:column; gap:2px;">
             <span style="font-weight:600;">{{.Name}}</span>
-            <span style="font-size:12.5px; color:var(--fg-mute);" title="{{formatTime .CreatedAt}}">Added {{shortDate .CreatedAt}}</span>
+            <span style="font-size:12.5px; color:var(--fg-mute);" title="{{formatTime .CreatedAt}}">{{t "ssh.added"}} {{shortDate .CreatedAt}}</span>
         </div>
         <span class="mono" style="flex:1 1 260px; font-size:12px; color:var(--fg-dim); overflow-wrap:anywhere;">{{.Fingerprint}}</span>
         <button class="btn btn-2xs btn-danger"
             hx-delete="/dashboard/ssh-keys/{{.ID}}"
             hx-target="#ssh-key-{{.ID}}"
             hx-swap="outerHTML"
-            hx-confirm="This key can no longer sign in to the SSH gateway."
-            data-confirm-title="Delete key “{{.Name}}”?"
-            data-confirm-cta="Delete"
-            data-confirm-danger>Delete</button>
+            hx-confirm="{{t "ssh.delete_body"}}"
+            data-confirm-title="{{tf "ssh.delete_title" .Name}}"
+            data-confirm-cta="{{t "common.delete"}}"
+            data-confirm-danger>{{t "common.delete"}}</button>
     </div>
     {{else}}
-    <div class="list-empty">No keys yet. Add one to reach your VMs over SSH.</div>
+    <div class="list-empty">{{t "ssh.empty"}}</div>
     {{end}}
 </section>
 
 <section class="panel" style="gap:12px;">
-    <h3>Connect</h3>
+    <h3>{{t "ssh.connect"}}</h3>
     <div class="inset" style="display:flex; align-items:center; gap:14px;">
         <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px;">
-            <span style="font-size:12px; color:var(--fg-mute);">Management shell — same actions as this dashboard</span>
+            <span style="font-size:12px; color:var(--fg-mute);">{{t "ssh.mgmt"}}</span>
             <span class="mono" style="font-size:13px; overflow-wrap:anywhere;">ssh -p 2222 svkexe@{{host}}</span>
         </div>
-        <button type="button" class="btn btn-2xs" data-copy="ssh -p 2222 svkexe@{{host}}">Copy</button>
+        <button type="button" class="btn btn-2xs" data-copy="ssh -p 2222 svkexe@{{host}}">{{t "common.copy"}}</button>
     </div>
     <div class="inset" style="display:flex; align-items:center; gap:14px;">
         <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px;">
-            <span style="font-size:12px; color:var(--fg-mute);">Straight into a VM</span>
-            <span class="mono" style="font-size:13px; overflow-wrap:anywhere;">ssh -p 2222 &lt;vm-name&gt;@{{host}}</span>
+            <span style="font-size:12px; color:var(--fg-mute);">{{t "ssh.direct"}}</span>
+            <span class="mono" style="font-size:13px; overflow-wrap:anywhere;">ssh -p 2222 <vm-name>@{{host}}</span>
         </div>
-        <button type="button" class="btn btn-2xs" data-copy="ssh -p 2222 <vm-name>@{{host}}">Copy</button>
+        <button type="button" class="btn btn-2xs" data-copy="ssh -p 2222 <vm-name>@{{host}}">{{t "common.copy"}}</button>
     </div>
     <div class="inset" style="display:flex; align-items:center; gap:14px;">
         <div style="flex:1; min-width:0; display:flex; flex-direction:column; gap:3px;">
-            <span style="font-size:12px; color:var(--fg-mute);">One-shot, machine-readable</span>
+            <span style="font-size:12px; color:var(--fg-mute);">{{t "ssh.oneshot"}}</span>
             <span class="mono" style="font-size:13px; overflow-wrap:anywhere;">ssh -p 2222 svkexe@{{host}} ls --json</span>
         </div>
-        <button type="button" class="btn btn-2xs" data-copy="ssh -p 2222 svkexe@{{host}} ls --json">Copy</button>
+        <button type="button" class="btn btn-2xs" data-copy="ssh -p 2222 svkexe@{{host}} ls --json">{{t "common.copy"}}</button>
     </div>
 </section>
 {{end}}

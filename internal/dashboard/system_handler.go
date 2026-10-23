@@ -5,6 +5,7 @@ import (
 
 	"github.com/skrashevich/svkexe/internal/updater"
 	"github.com/skrashevich/svkexe/internal/version"
+	"github.com/skrashevich/svkexe/ui"
 )
 
 // systemPageData backs the System page and both of its htmx fragments. It
@@ -76,7 +77,7 @@ func (d *Dashboard) newSystemData(r *http.Request) systemPageData {
 	}
 	data.NestingAllowed = allowed
 	if d.updater == nil {
-		data.UnavailableReason = "this deployment was started without the update service"
+		data.UnavailableReason = ui.T(ui.Resolve(r), "sys.no_updater")
 		return data
 	}
 
@@ -98,7 +99,7 @@ func (d *Dashboard) getSystem(w http.ResponseWriter, r *http.Request) {
 	if !d.requireAdmin(w, r) {
 		return
 	}
-	d.renderPage(w, "system.html", d.newSystemData(r))
+	d.renderPage(w, r, "system.html", d.newSystemData(r))
 }
 
 // getUpdateCheck handles GET /dashboard/system/check — the htmx fragment
@@ -112,7 +113,7 @@ func (d *Dashboard) getUpdateCheck(w http.ResponseWriter, r *http.Request) {
 
 	if d.updater == nil {
 		data.CheckError = data.UnavailableReason
-		d.render(w, "update_check", data)
+		d.render(w, r, "update_check", data)
 		return
 	}
 	// The page auto-loads this fragment, which must stay cheap; an explicit
@@ -122,12 +123,12 @@ func (d *Dashboard) getUpdateCheck(w http.ResponseWriter, r *http.Request) {
 	st, err := d.updater.Check(r.Context(), updater.ParseForce(r.URL.Query().Get("force")))
 	if err != nil {
 		data.CheckError = err.Error()
-		d.render(w, "update_check", data)
+		d.render(w, r, "update_check", data)
 		return
 	}
 	data.Status = &st
 	data.UpdateAvailable = st.UpdateAvailable
-	d.render(w, "update_check", data)
+	d.render(w, r, "update_check", data)
 }
 
 // postUpdate handles POST /dashboard/system/update — starts the update and
@@ -140,7 +141,7 @@ func (d *Dashboard) postUpdate(w http.ResponseWriter, r *http.Request) {
 
 	if d.updater == nil {
 		data.StartError = data.UnavailableReason
-		d.render(w, "update_status", data)
+		d.render(w, r, "update_status", data)
 		return
 	}
 	if err := d.updater.Start(r.Context()); err != nil {
@@ -148,7 +149,7 @@ func (d *Dashboard) postUpdate(w http.ResponseWriter, r *http.Request) {
 		// flight — is a normal answer for this button, not an HTTP failure: the
 		// fragment has to reach the page either way to explain itself.
 		data.StartError = err.Error()
-		d.render(w, "update_status", data)
+		d.render(w, r, "update_status", data)
 		return
 	}
 	// Start seeds a running state on disk; re-reading it means the fragment
@@ -156,7 +157,7 @@ func (d *Dashboard) postUpdate(w http.ResponseWriter, r *http.Request) {
 	if st, err := d.updater.State(); err == nil {
 		data.Run = st
 	}
-	d.render(w, "update_status", data)
+	d.render(w, r, "update_status", data)
 }
 
 // postNestingPolicy handles POST /dashboard/system/nesting — the deployment-wide
@@ -174,10 +175,10 @@ func (d *Dashboard) postNestingPolicy(w http.ResponseWriter, r *http.Request) {
 	if err := d.db.SetNestingAllowed(allowed); err != nil {
 		data := d.newSystemData(r)
 		data.NestingError = err.Error()
-		d.render(w, "nesting_policy", data)
+		d.render(w, r, "nesting_policy", data)
 		return
 	}
-	d.render(w, "nesting_policy", d.newSystemData(r))
+	d.render(w, r, "nesting_policy", d.newSystemData(r))
 }
 
 // getUpdateStatus handles GET /dashboard/system/status — the fragment the
@@ -186,5 +187,5 @@ func (d *Dashboard) getUpdateStatus(w http.ResponseWriter, r *http.Request) {
 	if !d.requireAdmin(w, r) {
 		return
 	}
-	d.render(w, "update_status", d.newSystemData(r))
+	d.render(w, r, "update_status", d.newSystemData(r))
 }

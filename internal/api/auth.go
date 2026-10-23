@@ -3,6 +3,7 @@ package api
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	dbpkg "github.com/skrashevich/svkexe/internal/db"
+	"github.com/skrashevich/svkexe/ui"
 )
 
 // SessionCookieName is the name of the cookie carrying the session token.
@@ -53,10 +55,28 @@ type pageData struct {
 	Error         string
 	AllowRegister bool
 	Email         string
+	Lang          string
+	Path          string
 }
 
-var loginTmpl = template.Must(template.New("login").Parse(`<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>{{.Title}}</title>
+func authFuncs() template.FuncMap {
+	return template.FuncMap{
+		"t": ui.T,
+	}
+}
+
+func authPage(r *http.Request, data pageData) pageData {
+	data.Lang = ui.Resolve(r)
+	if r.URL.RawQuery == "" {
+		data.Path = r.URL.Path
+	} else {
+		data.Path = r.URL.Path + "?" + r.URL.RawQuery
+	}
+	return data
+}
+
+var loginTmpl = template.Must(template.New("login").Funcs(authFuncs()).Parse(`<!doctype html>
+<html lang="{{.Lang}}"><head><meta charset="utf-8"><title>{{t .Lang "login.title"}}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   body{font-family:system-ui,sans-serif;background:#0f1115;color:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
@@ -69,19 +89,27 @@ var loginTmpl = template.Must(template.New("login").Parse(`<!doctype html>
   .err{background:#3a1a1d;color:#f87171;padding:.5rem .75rem;border-radius:4px;margin-bottom:1rem;font-size:.9rem}
   a{color:#93c5fd;text-decoration:none;font-size:.85rem}
   .foot{margin-top:1rem;text-align:center}
+  .langs{display:flex;gap:.5rem;justify-content:flex-end;margin:0 0 .75rem}
+  .langs button{margin:0;width:auto;padding:.25rem .6rem;background:transparent;color:#aaa;border:1px solid #333;font-weight:600}
+  .langs button.on{color:#fff;border-color:#93c5fd}
 </style></head><body>
 <form class="card" method="POST" action="/login">
-  <h1>{{.Title}}</h1>
+  <div class="langs" role="group" aria-label="{{t .Lang "lang.switch"}}">
+    <button type="submit" formaction="/lang" formnovalidate name="lang" value="en"{{if eq .Lang "en"}} class="on"{{end}}>EN</button>
+    <button type="submit" formaction="/lang" formnovalidate name="lang" value="ru"{{if eq .Lang "ru"}} class="on"{{end}}>RU</button>
+    <input type="hidden" name="next" value="{{.Path}}">
+  </div>
+  <h1>{{t .Lang "login.title"}}</h1>
   {{if .Error}}<div class="err">{{.Error}}</div>{{end}}
-  <label>Email <input type="email" name="email" value="{{.Email}}" autofocus required></label>
-  <label>Password <input type="password" name="password" required></label>
-  <button type="submit">Sign in</button>
-  {{if .AllowRegister}}<div class="foot"><a href="/register">Create the first admin account</a></div>{{end}}
+  <label>{{t .Lang "login.email"}} <input type="email" name="email" value="{{.Email}}" autofocus required></label>
+  <label>{{t .Lang "login.password"}} <input type="password" name="password" required></label>
+  <button type="submit">{{t .Lang "login.submit"}}</button>
+  {{if .AllowRegister}}<div class="foot"><a href="/register">{{t .Lang "login.register"}}</a></div>{{end}}
 </form>
 </body></html>`))
 
-var registerTmpl = template.Must(template.New("register").Parse(`<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>{{.Title}}</title>
+var registerTmpl = template.Must(template.New("register").Funcs(authFuncs()).Parse(`<!doctype html>
+<html lang="{{.Lang}}"><head><meta charset="utf-8"><title>{{t .Lang "reg.title"}}</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   body{font-family:system-ui,sans-serif;background:#0f1115;color:#eee;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
@@ -93,22 +121,30 @@ var registerTmpl = template.Must(template.New("register").Parse(`<!doctype html>
   button{margin-top:1.25rem;width:100%;padding:.6rem;background:#10b981;color:#fff;border:0;border-radius:4px;font-weight:600;cursor:pointer}
   button:hover{background:#059669}
   .err{background:#3a1a1d;color:#f87171;padding:.5rem .75rem;border-radius:4px;margin-bottom:1rem;font-size:.9rem}
+  .langs{display:flex;gap:.5rem;justify-content:flex-end;margin:0 0 .75rem}
+  .langs button{margin:0;width:auto;padding:.25rem .6rem;background:transparent;color:#aaa;border:1px solid #333;font-weight:600}
+  .langs button.on{color:#fff;border-color:#6ee7b7}
 </style></head><body>
 <form class="card" method="POST" action="/register">
-  <h1>{{.Title}}</h1>
-  <p class="sub">No users exist yet — this account becomes the admin.</p>
+  <div class="langs" role="group" aria-label="{{t .Lang "lang.switch"}}">
+    <button type="submit" formaction="/lang" formnovalidate name="lang" value="en"{{if eq .Lang "en"}} class="on"{{end}}>EN</button>
+    <button type="submit" formaction="/lang" formnovalidate name="lang" value="ru"{{if eq .Lang "ru"}} class="on"{{end}}>RU</button>
+    <input type="hidden" name="next" value="{{.Path}}">
+  </div>
+  <h1>{{t .Lang "reg.title"}}</h1>
+  <p class="sub">{{t .Lang "reg.sub"}}</p>
   {{if .Error}}<div class="err">{{.Error}}</div>{{end}}
-  <label>Email <input type="email" name="email" value="{{.Email}}" autofocus required></label>
-  <label>Password (min 8 chars) <input type="password" name="password" minlength="8" required></label>
-  <label>Confirm password <input type="password" name="password_confirm" minlength="8" required></label>
-  <button type="submit">Create admin account</button>
+  <label>{{t .Lang "login.email"}} <input type="email" name="email" value="{{.Email}}" autofocus required></label>
+  <label>{{t .Lang "reg.password"}} <input type="password" name="password" minlength="8" required></label>
+  <label>{{t .Lang "reg.confirm"}} <input type="password" name="password_confirm" minlength="8" required></label>
+  <button type="submit">{{t .Lang "reg.submit"}}</button>
 </form>
 </body></html>`))
 
 // loginGet renders the login form.
 func (s *Server) loginGet(w http.ResponseWriter, r *http.Request) {
 	allow, _ := s.noUsersYet()
-	_ = loginTmpl.Execute(w, pageData{Title: "svkexe login", AllowRegister: allow})
+	_ = loginTmpl.Execute(w, authPage(r, pageData{AllowRegister: allow}))
 }
 
 // loginPost validates credentials and issues a session cookie on success.
@@ -122,7 +158,7 @@ func (s *Server) loginPost(w http.ResponseWriter, r *http.Request) {
 
 	fail := func(msg string) {
 		w.WriteHeader(http.StatusUnauthorized)
-		_ = loginTmpl.Execute(w, pageData{Title: "svkexe login", Error: msg, Email: email})
+		_ = loginTmpl.Execute(w, authPage(r, pageData{Error: msg, Email: email}))
 	}
 
 	user, err := s.db.GetUserByEmail(email)
@@ -130,7 +166,7 @@ func (s *Server) loginPost(w http.ResponseWriter, r *http.Request) {
 		// Run a dummy bcrypt compare to keep response time roughly constant —
 		// harder to enumerate valid accounts via timing.
 		_ = bcrypt.CompareHashAndPassword([]byte("$2a$12$zz................................................zz"), []byte(password))
-		fail("Invalid email or password.")
+		fail(ui.T(ui.Resolve(r), "login.bad"))
 		return
 	}
 	if err != nil {
@@ -138,11 +174,11 @@ func (s *Server) loginPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user.PasswordHash == "" {
-		fail("Account has no password set. Contact the operator.")
+		fail(ui.T(ui.Resolve(r), "login.no_pass"))
 		return
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		fail("Invalid email or password.")
+		fail(ui.T(ui.Resolve(r), "login.bad"))
 		return
 	}
 
@@ -192,7 +228,7 @@ func (s *Server) registerGet(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login", http.StatusSeeOther)
 		return
 	}
-	_ = registerTmpl.Execute(w, pageData{Title: "Create admin account"})
+	_ = registerTmpl.Execute(w, authPage(r, pageData{}))
 }
 
 // registerPost creates the first admin account. Only works while the users
@@ -217,19 +253,19 @@ func (s *Server) registerPost(w http.ResponseWriter, r *http.Request) {
 
 	fail := func(msg string) {
 		w.WriteHeader(http.StatusBadRequest)
-		_ = registerTmpl.Execute(w, pageData{Title: "Create admin account", Error: msg, Email: email})
+		_ = registerTmpl.Execute(w, authPage(r, pageData{Error: msg, Email: email}))
 	}
 
 	if !strings.Contains(email, "@") {
-		fail("Enter a valid email address.")
+		fail(ui.T(ui.Resolve(r), "reg.email"))
 		return
 	}
 	if len(password) < 8 {
-		fail("Password must be at least 8 characters.")
+		fail(ui.T(ui.Resolve(r), "reg.short"))
 		return
 	}
 	if password != confirm {
-		fail("Passwords do not match.")
+		fail(ui.T(ui.Resolve(r), "reg.mismatch"))
 		return
 	}
 
@@ -245,7 +281,7 @@ func (s *Server) registerPost(w http.ResponseWriter, r *http.Request) {
 		PasswordHash: string(hash),
 	}
 	if err := s.db.CreateUser(user); err != nil {
-		fail("Could not create user: " + err.Error())
+		fail(fmt.Sprintf(ui.T(ui.Resolve(r), "reg.create"), err.Error()))
 		return
 	}
 	sess, err := s.db.CreateSession(user.ID)
@@ -265,4 +301,30 @@ func (s *Server) noUsersYet() (bool, error) {
 		return false, err
 	}
 	return n == 0, nil
+}
+
+// postLang saves the operator language and returns to the same site.
+func (s *Server) postLang(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	lang := ui.Normalize(r.PostFormValue("lang"))
+	if lang == "" {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	ui.SetLangCookie(w, lang, CookieSecure)
+	http.Redirect(w, r, safeLangNext(r), http.StatusSeeOther)
+}
+
+func safeLangNext(r *http.Request) string {
+	next := r.PostFormValue("next")
+	if next == "" {
+		next = r.FormValue("next")
+	}
+	if next == "" || !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.Contains(next, "\\") || strings.ContainsAny(next, "\r\n") {
+		return "/login"
+	}
+	return next
 }
