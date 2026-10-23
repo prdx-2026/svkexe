@@ -61,7 +61,7 @@ func (d *Dashboard) getKeys(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	d.renderPage(w, "keys.html", keyPageData{templateData: d.newData(r), llmBodyData: body})
+	d.renderPage(w, r, "keys.html", keyPageData{templateData: d.newData(r), llmBodyData: body})
 }
 
 // putKey handles PUT /dashboard/keys/{provider} — upsert a key.
@@ -248,7 +248,7 @@ func (d *Dashboard) getLLMBody(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to load settings", http.StatusInternalServerError)
 		return
 	}
-	d.render(w, "llm_body", body)
+	d.render(w, r, "llm_body", body)
 }
 
 func (d *Dashboard) refreshProviderKeys(r *http.Request, owner string) error {

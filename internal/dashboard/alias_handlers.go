@@ -57,7 +57,7 @@ func (d *Dashboard) postAddAlias(w http.ResponseWriter, r *http.Request) {
 		writeAliasError(w, err)
 		return
 	}
-	d.renderCard(w, c)
+	d.renderCard(w, r, c)
 }
 
 // postVerifyAlias handles POST /dashboard/vms/{id}/aliases/{aliasID}/verify
@@ -72,7 +72,7 @@ func (d *Dashboard) postVerifyAlias(w http.ResponseWriter, r *http.Request) {
 		writeAliasError(w, err)
 		return
 	}
-	d.renderCard(w, c)
+	d.renderCard(w, r, c)
 }
 
 // deleteAlias handles DELETE /dashboard/vms/{id}/aliases/{aliasID} and
@@ -87,5 +87,5 @@ func (d *Dashboard) deleteAlias(w http.ResponseWriter, r *http.Request) {
 		writeAliasError(w, err)
 		return
 	}
-	d.renderCard(w, c)
+	d.renderCard(w, r, c)
 }

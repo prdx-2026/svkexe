@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/skrashevich/svkexe/internal/ctxkeys"
 	"github.com/skrashevich/svkexe/internal/db"
+	"github.com/skrashevich/svkexe/ui"
 	gossh "golang.org/x/crypto/ssh"
 )
 
@@ -35,7 +36,7 @@ func (d *Dashboard) getSSHKeys(w http.ResponseWriter, r *http.Request) {
 		templateData: d.newData(r),
 		SSHKeys:      keys,
 	}
-	d.renderPage(w, "ssh_keys.html", data)
+	d.renderPage(w, r, "ssh_keys.html", data)
 }
 
 // postSSHKey handles POST /dashboard/ssh-keys
@@ -60,17 +61,17 @@ func (d *Dashboard) postSSHKey(w http.ResponseWriter, r *http.Request) {
 			SSHKeys:      keys,
 			Error:        msg,
 		}
-		d.renderPage(w, "ssh_keys.html", data)
+		d.renderPage(w, r, "ssh_keys.html", data)
 	}
 
 	if name == "" || publicKey == "" {
-		renderError("Name and public key are required.")
+		renderError(ui.T(ui.Resolve(r), "ssh.err.required"))
 		return
 	}
 
 	pub, _, _, _, err := gossh.ParseAuthorizedKey([]byte(publicKey))
 	if err != nil {
-		renderError("Invalid public key format. Paste in authorized_keys format (e.g. ssh-ed25519 AAAA...).")
+		renderError(ui.T(ui.Resolve(r), "ssh.err.format"))
 		return
 	}
 
@@ -86,10 +87,10 @@ func (d *Dashboard) postSSHKey(w http.ResponseWriter, r *http.Request) {
 
 	if err := d.db.CreateSSHKey(key); err != nil {
 		if strings.Contains(err.Error(), "UNIQUE") {
-			renderError("This SSH key is already registered.")
+			renderError(ui.T(ui.Resolve(r), "ssh.err.dup"))
 			return
 		}
-		renderError("Failed to save key.")
+		renderError(ui.T(ui.Resolve(r), "ssh.err.save"))
 		return
 	}
 

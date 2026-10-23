@@ -37,7 +37,7 @@ func (d *Dashboard) getIntegrations(w http.ResponseWriter, r *http.Request) {
 		rows = append(rows, row)
 	}
 	w.Header().Set("Cache-Control", "no-store")
-	d.renderPage(w, "integrations.html", struct {
+	d.renderPage(w, r, "integrations.html", struct {
 		templateData
 		Integrations []integrationRow
 	}{d.newData(r), rows})

@@ -57,7 +57,7 @@ func (d *Dashboard) getShell(w http.ResponseWriter, r *http.Request) {
 
 	data := d.newData(r)
 	data.Container = c
-	d.renderPage(w, "shell.html", data)
+	d.renderPage(w, r, "shell.html", data)
 }
 
 // handleWS handles GET /dashboard/vms/{id}/ws — WebSocket terminal proxy.

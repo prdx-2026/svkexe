@@ -85,7 +85,7 @@ func (d *Dashboard) postNesting(w http.ResponseWriter, r *http.Request) {
 	if err := picoclaw.RefreshEnvironmentGuide(r.Context(), d.runtime, d.db, updated); err != nil {
 		log.Printf("nesting for %s: refresh agent guide: %v", updated.IncusName, err)
 	}
-	d.renderCard(w, updated)
+	d.renderCard(w, r, updated)
 }
 
 // postRestartVM handles POST /dashboard/vms/{id}/restart. It exists for
@@ -143,5 +143,5 @@ func (d *Dashboard) postRestartVM(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	c.Status = "running"
-	d.renderCard(w, c)
+	d.renderCard(w, r, c)
 }

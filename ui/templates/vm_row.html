@@ -17,23 +17,23 @@
             <span class="vm-compact">
                 <span><span class="tdot tdot-{{$t.Tone}}"></span>{{$t.Label}}</span>
                 <span class="mono">{{.CPULimit}} vCPU · {{memSize .MemoryMB}} · {{.DiskGB}} GB</span>
-                <span class="{{if .AppPublic}}tone-accent{{end}}">{{if .SharedAccess}}Shared with you{{else if .AppPublic}}Public{{else}}Private{{end}}</span>
+                <span class="{{if .AppPublic}}tone-accent{{end}}">{{if .SharedAccess}}{{t "vms.shared_you"}}{{else if .AppPublic}}{{t "vms.public"}}{{else}}{{t "vms.private"}}{{end}}</span>
             </span>
         </div>
     </div>
     <div class="vm-task-cell vm-col-wide"><span class="tdot tdot-{{$t.Tone}}"></span><span>{{$t.Label}}</span></div>
     <div class="vm-specs vm-col-wide">{{.CPULimit}} vCPU · {{memSize .MemoryMB}} · {{.DiskGB}} GB</div>
     <div class="vm-col-wide">
-        {{if .SharedAccess}}<span class="pill" title="Shared with you">Shared</span>
-        {{else if .AppPublic}}<span class="pill pill-accent">Public</span>
-        {{else}}<span class="pill">Private</span>{{end}}
+        {{if .SharedAccess}}<span class="pill" title="{{t "vms.shared_you"}}">{{t "vms.shared"}}</span>
+        {{else if .AppPublic}}<span class="pill pill-accent">{{t "vms.public"}}</span>
+        {{else}}<span class="pill">{{t "vms.private"}}</span>{{end}}
     </div>
     <div class="vm-actions">
         {{if eq .Status "running"}}
-        <a class="btn btn-xs" href="/dashboard/vms/{{.ID}}/shell">Terminal</a>
+        <a class="btn btn-xs" href="/dashboard/vms/{{.ID}}/shell">{{t "vms.terminal"}}</a>
         <a class="btn btn-xs btn-accent-soft" href="https://agent-{{.Name}}.{{domain}}/" target="_blank" rel="noopener">PicoClaw</a>
         <a class="btn btn-xs" href="https://{{.Name}}.{{domain}}/" target="_blank" rel="noopener"
-           title="Your service on port {{.AppPort}} in this VM">Open ↗</a>
+           title="{{tf "vms.open_title" .AppPort}}">{{t "vms.open"}}</a>
         {{else if eq .Status "stopped"}}
         {{if not .SharedAccess}}
         <span class="busy-label busy-msg" hidden></span>
@@ -41,11 +41,11 @@
             hx-post="/dashboard/vms/{{.ID}}/start"
             hx-swap="none"
             hx-disabled-elt="this"
-            hx-on::before-request="omcBusy(this, 'Starting…'); this.previousElementSibling.hidden = false; this.hidden = true"
-            hx-on::after-request="this.closest('.vm-row').classList.remove('is-busy'); htmx.trigger('#vm-list', 'vm-refresh')">Start</button>
+            hx-on::before-request="omcBusy(this, '{{t "vms.starting"}}'); this.previousElementSibling.hidden = false; this.hidden = true"
+            hx-on::after-request="this.closest('.vm-row').classList.remove('is-busy'); htmx.trigger('#vm-list', 'vm-refresh')">{{t "vms.start"}}</button>
         {{end}}
         {{else if eq .Status "error"}}
-        <span class="busy-label tone-danger">Needs attention</span>
+        <span class="busy-label tone-danger">{{t "vms.needs_attention"}}</span>
         {{else}}
         <span class="busy-label"><span class="spin"></span>{{statusLabel .Status}}</span>
         {{end}}

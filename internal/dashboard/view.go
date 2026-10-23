@@ -1,11 +1,13 @@
 package dashboard
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	dbpkg "github.com/skrashevich/svkexe/internal/db"
+	"github.com/skrashevich/svkexe/ui"
 )
 
 // taskStep is one stop on the initial-task progress track.
@@ -39,37 +41,43 @@ type taskInfo struct {
 // vmTask resolves the task state against the VM status. A VM that is still
 // being created is not off: delivery runs before it is marked running, so a
 // task handed over then really is with the agent.
-func vmTask(c *dbpkg.Container) taskInfo {
+func vmTask(lang string, c *dbpkg.Container) taskInfo {
 	if c == nil || c.InitialTaskState == "" {
-		return taskInfo{Label: "No task", Tone: "none"}
+		return taskInfo{Label: ui.T(lang, "task.none"), Tone: "none"}
 	}
 	t := taskInfo{Has: true}
 	vmUp := c.Status == "running" || c.Status == "creating"
 	idx := 0
 	switch c.InitialTaskState {
 	case dbpkg.TaskPending:
-		t.Label, t.Tone, idx = "Waiting for the VM", "mute", 0
+		t.Label, t.Tone, idx = ui.T(lang, "task.waiting"), "mute", 0
 	case dbpkg.TaskSent:
-		t.Label, t.Tone, t.Spin, idx = "Handed to the agent", "accent", true, 1
+		t.Label, t.Tone, t.Spin, idx = ui.T(lang, "task.handed"), "accent", true, 1
 	case dbpkg.TaskWorking:
-		t.Label, t.Tone, t.Spin, idx = "Agent is working", "accent", true, 2
+		t.Label, t.Tone, t.Spin, idx = ui.T(lang, "task.working"), "accent", true, 2
 	case dbpkg.TaskDone:
-		t.Label, t.Tone, idx = "Finished", "ok", 3
+		t.Label, t.Tone, idx = ui.T(lang, "task.finished"), "ok", 3
 	default:
-		t.Label, t.Tone, t.Failed, idx = "Did not finish", "danger", true, 2
+		t.Label, t.Tone, t.Failed, idx = ui.T(lang, "task.failed"), "danger", true, 2
 	}
 	if t.Spin && !vmUp {
-		t.Label, t.Tone, t.Spin, t.OnHold = "On hold", "mute", false, true
+		t.Label, t.Tone, t.Spin, t.OnHold = ui.T(lang, "task.hold"), "mute", false, true
 	}
 	// A failed task's conversation is the one most worth reading, so any task
 	// with a conversation on a running VM can be watched.
 	t.CanWatch = c.InitialTaskConversation != "" && c.Status == "running"
 
-	for i, label := range []string{"Queued", "Sent", "Working", "Done"} {
+	labels := []string{
+		ui.T(lang, "task.queued"),
+		ui.T(lang, "task.sent"),
+		ui.T(lang, "task.step_working"),
+		ui.T(lang, "task.done"),
+	}
+	for i, label := range labels {
 		s := taskStep{Label: label, State: "todo", Last: i == 3}
 		switch {
 		case t.Failed && i == idx:
-			s.Label, s.State = "Failed", "failed"
+			s.Label, s.State = ui.T(lang, "task.step_failed"), "failed"
 		case i < idx || (i == idx && c.InitialTaskState == dbpkg.TaskDone):
 			s.State = "done"
 		case i == idx:
@@ -81,9 +89,13 @@ func vmTask(c *dbpkg.Container) taskInfo {
 }
 
 // statusLabel turns a stored VM status into the word the dashboard shows.
-func statusLabel(status string) string {
+func statusLabel(lang, status string) string {
 	if status == "" {
-		return "Unknown"
+		return ui.T(lang, "status.unknown")
+	}
+	key := "status." + strings.ToLower(status)
+	if ui.T(ui.LangEN, key) != key {
+		return ui.T(lang, key)
 	}
 	return strings.ToUpper(status[:1]) + status[1:]
 }
@@ -98,9 +110,16 @@ func memSize(mb int) string {
 
 // shortDate is the compact date used in lists, with the year only when it is
 // not the current one.
-func shortDate(t time.Time) string {
+func shortDate(lang string, t time.Time) string {
 	if t.IsZero() {
 		return "—"
+	}
+	if lang == ui.LangRU {
+		months := []string{"янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"}
+		if t.Year() == time.Now().Year() {
+			return fmt.Sprintf("%02d %s", t.Day(), months[t.Month()-1])
+		}
+		return fmt.Sprintf("%02d %s %d", t.Day(), months[t.Month()-1], t.Year())
 	}
 	if t.Year() == time.Now().Year() {
 		return t.Format("Jan 02")
@@ -117,14 +136,14 @@ func initial(s string) string {
 	return strings.ToUpper(s[:1])
 }
 
-func roleLabel(role string) string {
+func roleLabel(lang, role string) string {
 	switch role {
 	case "admin":
-		return "Administrator"
+		return ui.T(lang, "role.admin")
 	case dbpkg.GuestRole:
-		return "Guest"
+		return ui.T(lang, "role.guest")
 	default:
-		return "Member"
+		return ui.T(lang, "role.member")
 	}
 }
 

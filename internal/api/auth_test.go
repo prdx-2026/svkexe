@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	dbpkg "github.com/skrashevich/svkexe/internal/db"
+	"github.com/skrashevich/svkexe/ui"
 )
 
 // newAuthTestServer creates a server with a single user who has a known
@@ -235,5 +236,112 @@ func TestAuthMiddleware_HTMLRedirect(t *testing.T) {
 	loc := w.Header().Get("Location")
 	if !strings.HasPrefix(loc, "/login") {
 		t.Errorf("want redirect to /login, got %q", loc)
+	}
+}
+
+func TestLoginAndRegisterLanguages(t *testing.T) {
+	database, err := dbpkg.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { database.Close() })
+	srv := NewServer(database, newMockRuntime(), testEncKey, "", nil, nil, nil, nil, nil, nil)
+
+	en := httptest.NewRequest(http.MethodGet, "/login", nil)
+	enw := httptest.NewRecorder()
+	srv.ServeHTTP(enw, en)
+	if enw.Code != 200 || !strings.Contains(enw.Body.String(), `<html lang="en"`) || !strings.Contains(enw.Body.String(), "Sign in") || !strings.Contains(enw.Body.String(), "Password") {
+		t.Fatalf("english login: %d %s", enw.Code, enw.Body.String())
+	}
+
+	ru := httptest.NewRequest(http.MethodGet, "/login", nil)
+	ru.AddCookie(&http.Cookie{Name: ui.LangCookie, Value: "ru"})
+	ruw := httptest.NewRecorder()
+	srv.ServeHTTP(ruw, ru)
+	body := ruw.Body.String()
+	if !strings.Contains(body, `<html lang="ru"`) || !strings.Contains(body, "Войти") || !strings.Contains(body, "Пароль") {
+		t.Fatalf("russian login missing labels: %s", body)
+	}
+
+	form := url.Values{}
+	form.Set("email", "not-an-email")
+	form.Set("password", "short")
+	form.Set("password_confirm", "other")
+	reg := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(form.Encode()))
+	reg.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	reg.AddCookie(&http.Cookie{Name: ui.LangCookie, Value: "ru"})
+	regw := httptest.NewRecorder()
+	srv.ServeHTTP(regw, reg)
+	if regw.Code != http.StatusBadRequest || !strings.Contains(regw.Body.String(), "Введите корректный адрес email.") {
+		t.Fatalf("russian register validation: %d %s", regw.Code, regw.Body.String())
+	}
+
+	enreg := httptest.NewRequest(http.MethodPost, "/register", strings.NewReader(form.Encode()))
+	enreg.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	enregw := httptest.NewRecorder()
+	srv.ServeHTTP(enregw, enreg)
+	if enregw.Code != http.StatusBadRequest || !strings.Contains(enregw.Body.String(), "Enter a valid email address.") {
+		t.Fatalf("english register validation: %d %s", enregw.Code, enregw.Body.String())
+	}
+}
+
+func TestLanguageSwitchSetsCookie(t *testing.T) {
+	database, err := dbpkg.Open(":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { database.Close() })
+	srv := NewServer(database, newMockRuntime(), testEncKey, "", nil, nil, nil, nil, nil, nil)
+
+	form := url.Values{}
+	form.Set("lang", "ru")
+	form.Set("next", "/login")
+	r := httptest.NewRequest(http.MethodPost, "/lang", strings.NewReader(form.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+	srv.ServeHTTP(w, r)
+	if w.Code != http.StatusSeeOther || w.Header().Get("Location") != "/login" {
+		t.Fatalf("lang switch: %d location %q", w.Code, w.Header().Get("Location"))
+	}
+	var cookie *http.Cookie
+	for _, c := range w.Result().Cookies() {
+		if c.Name == ui.LangCookie {
+			cookie = c
+		}
+	}
+	if cookie == nil || cookie.Value != "ru" || cookie.Path != "/" || cookie.SameSite != http.SameSiteLaxMode || cookie.MaxAge != ui.LangMaxAge {
+		t.Fatalf("cookie %+v", cookie)
+	}
+
+	next := httptest.NewRequest(http.MethodGet, "/login", nil)
+	next.AddCookie(cookie)
+	nw := httptest.NewRecorder()
+	srv.ServeHTTP(nw, next)
+	if !strings.Contains(nw.Body.String(), "Войти") {
+		t.Fatal("page after RU switch was not Russian")
+	}
+
+	back := url.Values{}
+	back.Set("lang", "en")
+	back.Set("next", "/login")
+	br := httptest.NewRequest(http.MethodPost, "/lang", strings.NewReader(back.Encode()))
+	br.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	bw := httptest.NewRecorder()
+	srv.ServeHTTP(bw, br)
+	var enc *http.Cookie
+	for _, c := range bw.Result().Cookies() {
+		if c.Name == ui.LangCookie {
+			enc = c
+		}
+	}
+	if enc == nil || enc.Value != "en" {
+		t.Fatalf("EN cookie %+v", enc)
+	}
+	page := httptest.NewRequest(http.MethodGet, "/login", nil)
+	page.AddCookie(enc)
+	pw := httptest.NewRecorder()
+	srv.ServeHTTP(pw, page)
+	if !strings.Contains(pw.Body.String(), "Sign in") || strings.Contains(pw.Body.String(), "Войти") {
+		t.Fatal("EN switch did not return English")
 	}
 }

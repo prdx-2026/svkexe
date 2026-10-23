@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -30,8 +31,8 @@ type Dashboard struct {
 	picoclawLLMCfg     *picoclaw.LLMProxyConfig
 	updater            *updater.Service
 	aliases            *aliases.Manager
-	templates          *template.Template
-	funcMap            template.FuncMap
+	templates          map[string]*template.Template
+	funcMaps           map[string]template.FuncMap
 }
 
 // NewDashboard creates a Dashboard and parses all HTML templates.
@@ -41,7 +42,33 @@ type Dashboard struct {
 // never verify, and therefore never route — the same trade-off NewServer
 // documents for the REST API.
 func NewDashboard(database *db.DB, rt runtime.ContainerRuntime, materializer *secrets.Materializer, domain string, encKey []byte, picoclawLLM *picoclaw.LLMProxyConfig, upd *updater.Service, aliasVerifier aliases.Verifier) (*Dashboard, error) {
-	funcMap := template.FuncMap{
+	funcMaps := map[string]template.FuncMap{}
+	templates := map[string]*template.Template{}
+	for _, lang := range []string{ui.LangEN, ui.LangRU} {
+		funcMaps[lang] = dashboardFuncMap(domain, lang)
+		tmpl, err := template.New("").Funcs(funcMaps[lang]).ParseFS(ui.Templates, "templates/*.html")
+		if err != nil {
+			return nil, err
+		}
+		templates[lang] = tmpl
+	}
+
+	return &Dashboard{
+		db:             database,
+		runtime:        rt,
+		materializer:   materializer,
+		domain:         domain,
+		encKey:         encKey,
+		picoclawLLMCfg: picoclawLLM,
+		updater:        upd,
+		aliases:        aliases.New(database, rt, aliasVerifier, domain),
+		templates:      templates,
+		funcMaps:       funcMaps,
+	}, nil
+}
+
+func dashboardFuncMap(domain, lang string) template.FuncMap {
+	return template.FuncMap{
 		"formatTime": func(t time.Time) string {
 			return t.Format("2006-01-02 15:04")
 		},
@@ -66,12 +93,12 @@ func NewDashboard(database *db.DB, rt runtime.ContainerRuntime, materializer *se
 			}
 			return domain
 		},
-		"statusLabel":   statusLabel,
-		"task":          vmTask,
+		"statusLabel":   func(status string) string { return statusLabel(lang, status) },
+		"task":          func(c *db.Container) taskInfo { return vmTask(lang, c) },
 		"memSize":       memSize,
-		"shortDate":     shortDate,
+		"shortDate":     func(t time.Time) string { return shortDate(lang, t) },
 		"initial":       initial,
-		"roleLabel":     roleLabel,
+		"roleLabel":     func(role string) string { return roleLabel(lang, role) },
 		"providerLabel": providerLabel,
 		"maxAliases":    func() int { return db.MaxAliasesPerContainer },
 		"maskKey": func(key string) string {
@@ -80,25 +107,16 @@ func NewDashboard(database *db.DB, rt runtime.ContainerRuntime, materializer *se
 			}
 			return key[:4] + strings.Repeat("•", len(key)-8) + key[len(key)-4:]
 		},
+		"t":  func(key string) string { return ui.T(lang, key) },
+		"tf": func(key string, args ...any) string { return fmt.Sprintf(ui.T(lang, key), args...) },
+		"fieldLabel": func(id, name, fallback string) string {
+			key := "field." + id + "." + name
+			if ui.T(ui.LangEN, key) == key {
+				return fallback
+			}
+			return ui.T(lang, key)
+		},
 	}
-
-	tmpl, err := template.New("").Funcs(funcMap).ParseFS(ui.Templates, "templates/*.html")
-	if err != nil {
-		return nil, err
-	}
-
-	return &Dashboard{
-		db:             database,
-		runtime:        rt,
-		materializer:   materializer,
-		domain:         domain,
-		encKey:         encKey,
-		picoclawLLMCfg: picoclawLLM,
-		updater:        upd,
-		aliases:        aliases.New(database, rt, aliasVerifier, domain),
-		templates:      tmpl,
-		funcMap:        funcMap,
-	}, nil
 }
 
 // RegisterRoutes mounts all dashboard routes onto r.
@@ -163,6 +181,10 @@ type templateData struct {
 	// cannot derive it from User alone without hardcoding the role string in
 	// the template.
 	IsAdmin bool
+	// Lang is the language this page renders in: "en" or "ru".
+	Lang string
+	// Path is the current request URI, so the language switch can come back here.
+	Path string
 	// NestingAllowed is the deployment-wide ceiling on nested containers, which
 	// the create form needs so it does not offer a capability this deployment
 	// forbids.
@@ -224,22 +246,41 @@ func (d *Dashboard) fragmentData(r *http.Request) templateData {
 		Domain:         d.domain,
 		IsAdmin:        user != nil && user.Role == "admin",
 		NestingAllowed: allowed,
+		Lang:           ui.Resolve(r),
+		Path:           requestPath(r),
 	}
 }
 
-func (d *Dashboard) render(w http.ResponseWriter, tmplName string, data interface{}) {
+func requestPath(r *http.Request) string {
+	if r == nil || r.URL == nil {
+		return "/"
+	}
+	if r.URL.RawQuery == "" {
+		return r.URL.Path
+	}
+	return r.URL.Path + "?" + r.URL.RawQuery
+}
+
+func (d *Dashboard) render(w http.ResponseWriter, r *http.Request, tmplName string, data interface{}) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := d.templates.ExecuteTemplate(w, tmplName, data); err != nil {
+	if err := d.templateSet(r).ExecuteTemplate(w, tmplName, data); err != nil {
 		http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (d *Dashboard) templateSet(r *http.Request) *template.Template {
+	if set := d.templates[ui.Resolve(r)]; set != nil {
+		return set
+	}
+	return d.templates[ui.LangEN]
 }
 
 // renderCard renders the VM detail fragment — header, tabs and every panel —
 // which is what each owner action on a VM swaps back in. Failures to look up
 // the extras are logged, not returned: the VM itself is still there and its
 // page must still render, just without that section.
-func (d *Dashboard) renderCard(w http.ResponseWriter, c *db.Container) {
-	d.render(w, "vm_card", d.cardData(c, ""))
+func (d *Dashboard) renderCard(w http.ResponseWriter, r *http.Request, c *db.Container) {
+	d.render(w, r, "vm_card", d.cardData(c, ""))
 }
 
 func (d *Dashboard) cardData(c *db.Container, accessError string) vmCardData {
@@ -287,10 +328,15 @@ var partialPatterns = []string{
 // together with all partials, so that each page's {{define "content"}} is
 // isolated (no cross-page collision) but partial templates referenced by the
 // page are available.
-func (d *Dashboard) renderPage(w http.ResponseWriter, pageFile string, data interface{}) {
+func (d *Dashboard) renderPage(w http.ResponseWriter, r *http.Request, pageFile string, data interface{}) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	lang := ui.Resolve(r)
+	funcs := d.funcMaps[lang]
+	if funcs == nil {
+		funcs = d.funcMaps[ui.LangEN]
+	}
 	files := append([]string{"templates/layout.html", "templates/" + pageFile}, partialPatterns...)
-	tmpl, err := template.New("").Funcs(d.funcMap).ParseFS(ui.Templates, files...)
+	tmpl, err := template.New("").Funcs(funcs).ParseFS(ui.Templates, files...)
 	if err != nil {
 		http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)
 		return

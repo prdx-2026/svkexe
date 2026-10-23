@@ -51,7 +51,7 @@ func (d *Dashboard) postPublish(w http.ResponseWriter, r *http.Request) {
 	if err := picoclaw.RefreshEnvironmentGuide(r.Context(), d.runtime, d.db, updated); err != nil {
 		log.Printf("publish settings for %s: refresh agent guide: %v", updated.IncusName, err)
 	}
-	d.renderCard(w, updated)
+	d.renderCard(w, r, updated)
 }
 
 // postRetryTask handles POST /dashboard/vms/{id}/task/retry and re-renders the card.
@@ -79,5 +79,5 @@ func (d *Dashboard) postRetryTask(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
-	d.renderCard(w, updated)
+	d.renderCard(w, r, updated)
 }
